@@ -125,16 +125,33 @@ const samplePipeline: Stage[] = [
 
 interface DealCardProps {
   deal: Deal;
+  onEdit: (id: string, updatedDeal: Partial<Deal>) => void;
   onDelete: (id: string) => void;
 }
 
-const DealCard: React.FC<DealCardProps> = ({ deal, onDelete }) => {
+const DealCard: React.FC<DealCardProps> = ({ deal, onEdit, onDelete }) => {
   const [isEditDealOpen, setIsEditDealOpen] = useState(false);
 
   const handleEdit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Get form data
+    const form = e.target as HTMLFormElement;
+    const dealName = (form.querySelector('#edit-deal-name') as HTMLInputElement).value;
+    const company = (form.querySelector('#edit-company') as HTMLInputElement).value;
+    const value = Number((form.querySelector('#edit-value') as HTMLInputElement).value);
+    const probability = Number((form.querySelector('#edit-probability') as HTMLInputElement).value);
+    
+    // Create updated deal
+    const updatedDeal: Partial<Deal> = {
+      name: dealName,
+      company,
+      value,
+      probability,
+    };
+    
+    onEdit(deal.id, updatedDeal);
     setIsEditDealOpen(false);
-    toast.success("Deal updated successfully");
   };
 
   return (
@@ -160,7 +177,6 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onDelete }) => {
                 className="text-destructive"
                 onClick={() => {
                   onDelete(deal.id);
-                  toast.success("Deal deleted successfully");
                 }}
               >
                 Delete deal
@@ -255,10 +271,11 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onDelete }) => {
 interface StageColumnProps {
   stage: Stage;
   onAddDeal: (stageId: string) => void;
+  onEditDeal: (dealId: string, updatedDeal: Partial<Deal>) => void;
   onDeleteDeal: (dealId: string) => void;
 }
 
-const StageColumn: React.FC<StageColumnProps> = ({ stage, onAddDeal, onDeleteDeal }) => {
+const StageColumn: React.FC<StageColumnProps> = ({ stage, onAddDeal, onEditDeal, onDeleteDeal }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const totalValue = stage.deals.reduce((sum, deal) => sum + deal.value, 0);
 
@@ -292,7 +309,12 @@ const StageColumn: React.FC<StageColumnProps> = ({ stage, onAddDeal, onDeleteDea
         <>
           <div className="space-y-3">
             {stage.deals.map((deal) => (
-              <DealCard key={deal.id} deal={deal} onDelete={onDeleteDeal} />
+              <DealCard 
+                key={deal.id} 
+                deal={deal} 
+                onEdit={onEditDeal}
+                onDelete={onDeleteDeal} 
+              />
             ))}
           </div>
           <Button 
@@ -351,11 +373,26 @@ const PipelineView: React.FC = () => {
     toast.success("Deal added successfully");
   };
 
+  const handleEditDeal = (dealId: string, updatedDeal: Partial<Deal>) => {
+    setPipeline(pipeline.map(stage => ({
+      ...stage,
+      deals: stage.deals.map(deal => 
+        deal.id === dealId
+          ? { ...deal, ...updatedDeal }
+          : deal
+      )
+    })));
+    
+    toast.success("Deal updated successfully");
+  };
+
   const handleDeleteDeal = (dealId: string) => {
     setPipeline(pipeline.map(stage => ({
       ...stage,
       deals: stage.deals.filter(deal => deal.id !== dealId)
     })));
+    
+    toast.success("Deal deleted successfully");
   };
 
   const handleAddStage = (e: React.FormEvent) => {
@@ -387,7 +424,8 @@ const PipelineView: React.FC = () => {
             <div key={stage.id} className="w-[280px] bg-gray-50 rounded-lg p-4">
               <StageColumn 
                 stage={stage} 
-                onAddDeal={handleAddDealClick} 
+                onAddDeal={handleAddDealClick}
+                onEditDeal={handleEditDeal}
                 onDeleteDeal={handleDeleteDeal}
               />
             </div>

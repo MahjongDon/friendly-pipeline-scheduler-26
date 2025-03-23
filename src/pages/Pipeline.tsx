@@ -20,6 +20,9 @@ const Pipeline = () => {
 
   const handleAddDeal = (e: React.FormEvent) => {
     e.preventDefault();
+    // Note: This global add-deal functionality could be integrated with PipelineView
+    // In a real application, we would handle adding the deal to the first stage
+    // and possibly send it to a backend
     setIsAddDealOpen(false);
     toast.success("New deal added successfully");
   };

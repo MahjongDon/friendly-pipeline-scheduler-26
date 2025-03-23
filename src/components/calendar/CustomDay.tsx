@@ -10,7 +10,7 @@ interface CustomDayProps {
 }
 
 const CustomDay: React.FC<CustomDayProps> = ({ dayProps, events }) => {
-  const { date, ...rest } = dayProps;
+  const { date, displayMonth, activeModifiers, ...rest } = dayProps;
   
   const eventsOnDay = events.filter(
     (event) =>
@@ -23,13 +23,7 @@ const CustomDay: React.FC<CustomDayProps> = ({ dayProps, events }) => {
   const hasMoreEvents = eventsOnDay.length > maxEventsToShow;
 
   return (
-    <button
-      {...rest}
-      className={cn(
-        rest.className,
-        "h-12 w-12 p-0 font-normal aria-selected:opacity-100"
-      )}
-    >
+    <div className={cn("h-12 w-12 p-0 font-normal aria-selected:opacity-100")}>
       <div className="w-full h-full">
         <div className="text-center">{date.getDate()}</div>
         {eventsOnDay.length > 0 && (
@@ -51,7 +45,7 @@ const CustomDay: React.FC<CustomDayProps> = ({ dayProps, events }) => {
           </div>
         )}
       </div>
-    </button>
+    </div>
   );
 };
 

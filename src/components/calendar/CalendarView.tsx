@@ -17,7 +17,7 @@ import DayView from "./DayView";
 import AlternateViewMessage from "./AlternateViewMessage";
 import CustomDay from "./CustomDay";
 
-// We need to import the specific types we need from react-day-picker
+// Import the specific types from react-day-picker
 import type { DayContentProps } from "react-day-picker";
 
 const CalendarView: React.FC = () => {

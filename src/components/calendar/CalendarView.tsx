@@ -162,7 +162,7 @@ const CalendarView: React.FC = () => {
             showOutsideDays
             className="p-0"
             components={{
-              Day: ({ day, ...props }) => (
+              Day: ({ date: dayDate, ...props }) => (
                 <button
                   {...props}
                   className={cn(
@@ -170,7 +170,7 @@ const CalendarView: React.FC = () => {
                     "h-12 w-12 p-0 font-normal aria-selected:opacity-100"
                   )}
                 >
-                  {renderDay(day)}
+                  {renderDay(dayDate)}
                 </button>
               ),
             }}

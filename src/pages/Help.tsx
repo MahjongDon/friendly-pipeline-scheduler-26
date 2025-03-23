@@ -75,13 +75,15 @@ const Help: React.FC = () => {
           <div className="bg-primary-foreground mb-6 p-8 rounded-lg border text-center">
             <h2 className="text-xl font-semibold mb-4">How can we help you today?</h2>
             <div className="max-w-xl mx-auto">
-              <Input
-                placeholder="Search for help..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="mb-4"
-                prefix={<Search className="h-4 w-4 text-muted-foreground" />}
-              />
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search for help..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 mb-4"
+                />
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
                 <Card>
                   <CardHeader className="text-center p-4">

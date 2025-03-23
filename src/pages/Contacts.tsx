@@ -184,13 +184,15 @@ const Contacts: React.FC = () => {
           </div>
           
           <div className="mb-6">
-            <Input
-              placeholder="Search contacts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-md"
-              prefix={<Search className="h-4 w-4 text-muted-foreground" />}
-            />
+            <div className="relative max-w-md">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search contacts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
           
           <Tabs defaultValue="all" className="mb-6">

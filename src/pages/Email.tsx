@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Inbox, Send, Archive, Star, Trash2, File, Search, Mail, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,6 @@ interface Email {
   folder: "inbox" | "sent" | "archive" | "draft" | "trash";
 }
 
-// Sample data
 const sampleEmails: Email[] = [
   {
     id: "email-1",
@@ -306,13 +304,15 @@ const Email: React.FC = () => {
           
           <div className="flex-1 flex flex-col">
             <div className="border-b p-4 bg-white flex items-center justify-between">
-              <Input
-                placeholder="Search emails..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-md"
-                prefix={<Search className="h-4 w-4 text-muted-foreground" />}
-              />
+              <div className="relative max-w-md">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search emails..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 max-w-md"
+                />
+              </div>
               
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm">

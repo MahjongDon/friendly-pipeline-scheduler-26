@@ -12,7 +12,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { DayProps } from "react-day-picker";
+
+// We need to import the specific types we need from react-day-picker
+import type { DayContentProps } from "react-day-picker";
 
 interface Event {
   id: string;
@@ -163,7 +165,7 @@ const CalendarView: React.FC = () => {
             showOutsideDays
             className="p-0"
             components={{
-              Day: ({ day, ...props }: DayProps) => (
+              Day: ({ date: dayDate, ...props }: DayContentProps) => (
                 <button
                   {...props}
                   className={cn(
@@ -171,7 +173,7 @@ const CalendarView: React.FC = () => {
                     "h-12 w-12 p-0 font-normal aria-selected:opacity-100"
                   )}
                 >
-                  {renderDay(day)}
+                  {renderDay(dayDate)}
                 </button>
               ),
             }}

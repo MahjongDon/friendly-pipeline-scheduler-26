@@ -10,7 +10,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 // Sample data types
 interface Deal {
@@ -118,47 +123,142 @@ const samplePipeline: Stage[] = [
   },
 ];
 
-const DealCard: React.FC<{ deal: Deal }> = ({ deal }) => {
+interface DealCardProps {
+  deal: Deal;
+  onDelete: (id: string) => void;
+}
+
+const DealCard: React.FC<DealCardProps> = ({ deal, onDelete }) => {
+  const [isEditDealOpen, setIsEditDealOpen] = useState(false);
+
+  const handleEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsEditDealOpen(false);
+    toast.success("Deal updated successfully");
+  };
+
   return (
-    <div className="bg-white rounded-md border p-3 mb-3 hover:shadow-subtle transition-all duration-200 cursor-pointer animate-scale-in">
-      <div className="flex justify-between items-start">
-        <div>
-          <h4 className="font-medium mb-1 truncate">{deal.name}</h4>
-          <p className="text-sm text-muted-foreground mb-2">{deal.company}</p>
+    <>
+      <div className="bg-white rounded-md border p-3 mb-3 hover:shadow-subtle transition-all duration-200 cursor-pointer animate-scale-in">
+        <div className="flex justify-between items-start">
+          <div>
+            <h4 className="font-medium mb-1 truncate">{deal.name}</h4>
+            <p className="text-sm text-muted-foreground mb-2">{deal.company}</p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="-mr-2 h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => setIsEditDealOpen(true)}>Edit deal</DropdownMenuItem>
+              <DropdownMenuItem>Move to stage</DropdownMenuItem>
+              <DropdownMenuItem>Add note</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-destructive"
+                onClick={() => {
+                  onDelete(deal.id);
+                  toast.success("Deal deleted successfully");
+                }}
+              >
+                Delete deal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="-mr-2 h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>Edit deal</DropdownMenuItem>
-            <DropdownMenuItem>Move to stage</DropdownMenuItem>
-            <DropdownMenuItem>Add note</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Delete deal</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-medium">${deal.value.toLocaleString()}</span>
-        <Badge variant="outline" className="text-xs bg-primary/10 hover:bg-primary/20">
-          {deal.probability}%
-        </Badge>
-      </div>
-      <div className="flex flex-wrap gap-1 mt-2">
-        {deal.tags.map((tag) => (
-          <Badge key={tag} variant="secondary" className="text-xs font-normal">
-            {tag}
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm font-medium">${deal.value.toLocaleString()}</span>
+          <Badge variant="outline" className="text-xs bg-primary/10 hover:bg-primary/20">
+            {deal.probability}%
           </Badge>
-        ))}
+        </div>
+        <div className="flex flex-wrap gap-1 mt-2">
+          {deal.tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="text-xs font-normal">
+              {tag}
+            </Badge>
+          ))}
+        </div>
       </div>
-    </div>
+
+      <Dialog open={isEditDealOpen} onOpenChange={setIsEditDealOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Deal</DialogTitle>
+            <DialogDescription>
+              Make changes to the deal information.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEdit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-deal-name" className="text-right">
+                  Deal Name
+                </Label>
+                <Input
+                  id="edit-deal-name"
+                  defaultValue={deal.name}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-company" className="text-right">
+                  Company
+                </Label>
+                <Input
+                  id="edit-company"
+                  defaultValue={deal.company}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-value" className="text-right">
+                  Value ($)
+                </Label>
+                <Input
+                  id="edit-value"
+                  type="number"
+                  defaultValue={deal.value}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-probability" className="text-right">
+                  Probability (%)
+                </Label>
+                <Input
+                  id="edit-probability"
+                  type="number"
+                  min="0"
+                  max="100"
+                  defaultValue={deal.probability}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Save changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
-const StageColumn: React.FC<{ stage: Stage }> = ({ stage }) => {
+interface StageColumnProps {
+  stage: Stage;
+  onAddDeal: (stageId: string) => void;
+  onDeleteDeal: (dealId: string) => void;
+}
+
+const StageColumn: React.FC<StageColumnProps> = ({ stage, onAddDeal, onDeleteDeal }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const totalValue = stage.deals.reduce((sum, deal) => sum + deal.value, 0);
 
@@ -192,10 +292,15 @@ const StageColumn: React.FC<{ stage: Stage }> = ({ stage }) => {
         <>
           <div className="space-y-3">
             {stage.deals.map((deal) => (
-              <DealCard key={deal.id} deal={deal} />
+              <DealCard key={deal.id} deal={deal} onDelete={onDeleteDeal} />
             ))}
           </div>
-          <Button variant="ghost" size="sm" className="w-full mt-3 text-muted-foreground">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-full mt-3 text-muted-foreground"
+            onClick={() => onAddDeal(stage.id)}
+          >
             <Plus className="h-4 w-4 mr-1" /> Add deal
           </Button>
         </>
@@ -206,20 +311,190 @@ const StageColumn: React.FC<{ stage: Stage }> = ({ stage }) => {
 
 const PipelineView: React.FC = () => {
   const [pipeline, setPipeline] = useState(samplePipeline);
+  const [isAddDealOpen, setIsAddDealOpen] = useState(false);
+  const [selectedStageId, setSelectedStageId] = useState("");
+  const [isAddStageOpen, setIsAddStageOpen] = useState(false);
+
+  const handleAddDealClick = (stageId: string) => {
+    setSelectedStageId(stageId);
+    setIsAddDealOpen(true);
+  };
+
+  const handleAddDeal = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Get form data
+    const form = e.target as HTMLFormElement;
+    const dealName = (form.querySelector('#deal-name') as HTMLInputElement).value;
+    const company = (form.querySelector('#company') as HTMLInputElement).value;
+    const value = Number((form.querySelector('#value') as HTMLInputElement).value);
+    const probability = Number((form.querySelector('#probability') as HTMLInputElement).value);
+    
+    // Create new deal
+    const newDeal: Deal = {
+      id: `deal-${Date.now()}`,
+      name: dealName,
+      company,
+      value,
+      probability,
+      tags: ["new"],
+    };
+    
+    // Add to pipeline
+    setPipeline(pipeline.map(stage => 
+      stage.id === selectedStageId
+        ? { ...stage, deals: [...stage.deals, newDeal] }
+        : stage
+    ));
+    
+    setIsAddDealOpen(false);
+    toast.success("Deal added successfully");
+  };
+
+  const handleDeleteDeal = (dealId: string) => {
+    setPipeline(pipeline.map(stage => ({
+      ...stage,
+      deals: stage.deals.filter(deal => deal.id !== dealId)
+    })));
+  };
+
+  const handleAddStage = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Get form data
+    const form = e.target as HTMLFormElement;
+    const stageName = (form.querySelector('#stage-name') as HTMLInputElement).value;
+    
+    // Create new stage
+    const newStage: Stage = {
+      id: `stage-${Date.now()}`,
+      name: stageName,
+      deals: [],
+    };
+    
+    // Add to pipeline
+    setPipeline([...pipeline, newStage]);
+    
+    setIsAddStageOpen(false);
+    toast.success("Stage added successfully");
+  };
 
   return (
-    <div className="w-full overflow-x-auto pb-6">
-      <div className="flex gap-4 min-w-max p-1">
-        {pipeline.map((stage) => (
-          <StageColumn key={stage.id} stage={stage} />
-        ))}
-        <div className="w-[280px] h-[200px] border border-dashed border-border rounded-lg flex items-center justify-center text-muted-foreground">
-          <Button variant="ghost">
-            <Plus className="h-4 w-4 mr-2" /> Add Stage
-          </Button>
+    <>
+      <div className="w-full overflow-x-auto pb-6">
+        <div className="flex gap-4 min-w-max p-1">
+          {pipeline.map((stage) => (
+            <div key={stage.id} className="w-[280px] bg-gray-50 rounded-lg p-4">
+              <StageColumn 
+                stage={stage} 
+                onAddDeal={handleAddDealClick} 
+                onDeleteDeal={handleDeleteDeal}
+              />
+            </div>
+          ))}
+          <div className="w-[280px] h-[200px] border border-dashed border-border rounded-lg flex items-center justify-center text-muted-foreground">
+            <Button variant="ghost" onClick={() => setIsAddStageOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" /> Add Stage
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <Dialog open={isAddDealOpen} onOpenChange={setIsAddDealOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Deal</DialogTitle>
+            <DialogDescription>
+              Enter the details for the new deal you want to add to your pipeline.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddDeal}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="deal-name" className="text-right">
+                  Deal Name
+                </Label>
+                <Input
+                  id="deal-name"
+                  placeholder="Enter deal name"
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="company" className="text-right">
+                  Company
+                </Label>
+                <Input
+                  id="company"
+                  placeholder="Enter company name"
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="value" className="text-right">
+                  Value ($)
+                </Label>
+                <Input
+                  id="value"
+                  type="number"
+                  placeholder="Enter deal value"
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="probability" className="text-right">
+                  Probability (%)
+                </Label>
+                <Input
+                  id="probability"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="Enter probability"
+                  className="col-span-3"
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Add Deal</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddStageOpen} onOpenChange={setIsAddStageOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Stage</DialogTitle>
+            <DialogDescription>
+              Create a new stage for your pipeline.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddStage}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="stage-name" className="text-right">
+                  Stage Name
+                </Label>
+                <Input
+                  id="stage-name"
+                  placeholder="Enter stage name"
+                  className="col-span-3"
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Add Stage</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

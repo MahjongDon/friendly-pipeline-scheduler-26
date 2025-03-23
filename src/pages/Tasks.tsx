@@ -3,15 +3,31 @@ import React, { useState } from "react";
 import { PlusCircle, Filter, Calendar as CalendarIcon, List, Users, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import TasksList from "@/components/tasks/TasksList";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "sonner";
 
 const Tasks = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const isMobile = useIsMobile();
+
+  const handleAddTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAddTaskOpen(false);
+    toast.success("Task added successfully");
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -40,7 +56,7 @@ const Tasks = () => {
               <Button variant="outline" size="sm">
                 <ArrowUpDown className="h-4 w-4 mr-2" /> Sort
               </Button>
-              <Button size="sm">
+              <Button size="sm" onClick={() => setIsAddTaskOpen(true)}>
                 <PlusCircle className="h-4 w-4 mr-2" /> New Task
               </Button>
             </div>
@@ -89,6 +105,88 @@ const Tasks = () => {
               </div>
             </TabsContent>
           </Tabs>
+          
+          <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add New Task</DialogTitle>
+                <DialogDescription>
+                  Create a new task to keep track of your work.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddTask}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="task-title">
+                      Task Title
+                    </Label>
+                    <Input
+                      id="task-title"
+                      placeholder="Enter task title"
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="category">
+                      Category
+                    </Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="work">Work</SelectItem>
+                        <SelectItem value="personal">Personal</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="sales">Sales</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="priority">
+                      Priority
+                    </Label>
+                    <Select defaultValue="medium">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Due Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="justify-start text-left font-normal"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, "PPP") : "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Add Task</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </div>

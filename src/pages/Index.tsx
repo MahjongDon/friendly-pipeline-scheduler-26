@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { ArrowRight, Calendar, CheckCircle2, ListChecks, PieChart, Plus, Target, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,8 +50,10 @@ const Index = () => {
                 <span className="text-sm text-emerald-500 ml-2 mb-1">+12% this month</span>
               </div>
               <div className="mt-2">
-                <Button variant="link" size="sm" className="p-0 h-auto flex items-center">
-                  View all leads <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                <Button variant="link" size="sm" className="p-0 h-auto flex items-center" asChild>
+                  <Link to="/contacts">
+                    View all leads <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Link>
                 </Button>
               </div>
             </DashboardCard>
@@ -61,8 +64,10 @@ const Index = () => {
                 <span className="text-sm text-emerald-500 ml-2 mb-1">+5% this week</span>
               </div>
               <div className="mt-2">
-                <Button variant="link" size="sm" className="p-0 h-auto flex items-center">
-                  View pipeline <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                <Button variant="link" size="sm" className="p-0 h-auto flex items-center" asChild>
+                  <Link to="/pipeline">
+                    View pipeline <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Link>
                 </Button>
               </div>
             </DashboardCard>
@@ -73,8 +78,10 @@ const Index = () => {
                 <span className="text-sm text-orange-500 ml-2 mb-1">12 due today</span>
               </div>
               <div className="mt-2">
-                <Button variant="link" size="sm" className="p-0 h-auto flex items-center">
-                  View all tasks <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                <Button variant="link" size="sm" className="p-0 h-auto flex items-center" asChild>
+                  <Link to="/tasks">
+                    View all tasks <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Link>
                 </Button>
               </div>
             </DashboardCard>
@@ -85,8 +92,10 @@ const Index = () => {
                 <span className="text-sm text-slate-500 ml-2 mb-1">Next in 45m</span>
               </div>
               <div className="mt-2">
-                <Button variant="link" size="sm" className="p-0 h-auto flex items-center">
-                  View calendar <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                <Button variant="link" size="sm" className="p-0 h-auto flex items-center" asChild>
+                  <Link to="/calendar">
+                    View calendar <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Link>
                 </Button>
               </div>
             </DashboardCard>
@@ -160,8 +169,8 @@ const Index = () => {
                   </div>
                 </div>
                 
-                <Button variant="ghost" size="sm" className="w-full mt-2">
-                  View all activity
+                <Button variant="ghost" size="sm" className="w-full mt-2" asChild>
+                  <Link to="/pipeline">View all activity</Link>
                 </Button>
               </div>
             </DashboardCard>
@@ -171,9 +180,11 @@ const Index = () => {
             <DashboardCard 
               title="Today's Tasks" 
               icon={
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" /> New Task
-                </Button>
+                <Link to="/tasks">
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" /> New Task
+                  </Button>
+                </Link>
               }
             >
               <TasksList />

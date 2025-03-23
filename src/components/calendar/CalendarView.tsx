@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { DayProps } from "react-day-picker";
 
 interface Event {
   id: string;
@@ -162,7 +163,7 @@ const CalendarView: React.FC = () => {
             showOutsideDays
             className="p-0"
             components={{
-              Day: ({ date: dayDate, ...props }) => (
+              Day: ({ day, ...props }: DayProps) => (
                 <button
                   {...props}
                   className={cn(
@@ -170,12 +171,13 @@ const CalendarView: React.FC = () => {
                     "h-12 w-12 p-0 font-normal aria-selected:opacity-100"
                   )}
                 >
-                  {renderDay(dayDate)}
+                  {renderDay(day)}
                 </button>
               ),
             }}
           />
         </div>
+        
         <div className="bg-white border rounded-lg p-4">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-medium">Upcoming Events</h3>

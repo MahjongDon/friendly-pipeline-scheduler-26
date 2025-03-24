@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmailService } from "@/types/emailAutomation";
-import { validateEmailConfig, testEmailConfig } from "@/utils/emailValidation";
+import { 
+  validateEmailConfig, 
+  testEmailConfig,
+  saveEmailConfig,
+  getEmailConfig 
+} from "@/utils/emailValidation";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EmailServiceConfigProps {
   service: EmailService;
@@ -27,64 +33,95 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [fromEmail, setFromEmail] = useState("");
   const [fromName, setFromName] = useState("");
   const [isTesting, setIsTesting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Load saved configuration from localStorage if available
-    const savedConfig = localStorage.getItem(`emailService_${service.name}`);
-    if (savedConfig) {
-      const config = JSON.parse(savedConfig);
-      if (service.name === "SMTP") {
-        setHost(config.host || "smtp.gmail.com");
-        setPort(config.port || "587");
-        setUsername(config.username || "");
-        setFromEmail(config.fromEmail || "");
-        setFromName(config.fromName || "");
-        // Don't load the password from localStorage for security
+    // Check if user is authenticated
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("You must be logged in to configure email services");
+        onCancel();
+        return;
       }
-    }
-  }, [service.name]);
+      
+      setIsLoading(false);
+      
+      // Load existing configuration from Supabase if available
+      if (service.name === "SMTP") {
+        const result = await getEmailConfig();
+        if (result.success && result.config) {
+          const config = result.config;
+          setHost(config.host || "smtp.gmail.com");
+          setPort(config.port || "587");
+          setUsername(config.username || "");
+          setFromEmail(config.fromEmail || "");
+          setFromName(config.fromName || "");
+          // We don't set the password here for security reasons
+          toast.info("Loaded existing SMTP configuration");
+        }
+      }
+    };
+    
+    checkAuth();
+  }, [service.name, onCancel]);
   
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     
     let config: any = {};
     let validationResult;
     
-    switch (service.name) {
-      case "SMTP":
-        config = { host, port, username, password, fromEmail, fromName };
-        validationResult = validateEmailConfig(config);
+    try {
+      switch (service.name) {
+        case "SMTP":
+          config = { host, port, username, password, fromEmail, fromName };
+          validationResult = validateEmailConfig(config);
+          
+          if (!validationResult.isValid) {
+            validationResult.errors.forEach(error => toast.error(error));
+            setIsSaving(false);
+            return;
+          }
+          
+          // Save to Supabase
+          const saveResult = await saveEmailConfig(config);
+          if (!saveResult.success) {
+            toast.error(saveResult.message || "Failed to save configuration");
+            setIsSaving(false);
+            return;
+          }
+          
+          break;
         
-        if (!validationResult.isValid) {
-          validationResult.errors.forEach(error => toast.error(error));
-          return;
-        }
-        
-        // Store in localStorage (except password)
-        const storageConfig = { ...config };
-        delete storageConfig.password;
-        localStorage.setItem(`emailService_${service.name}`, JSON.stringify(storageConfig));
-        break;
+        case "SendGrid":
+        case "Mailchimp":
+        case "Amazon SES":
+          if (!apiKey || !fromEmail) {
+            toast.error("API key and From Email are required");
+            setIsSaving(false);
+            return;
+          }
+          config = { apiKey, fromEmail, fromName };
+          // Store API service configs if needed in future
+          break;
+      }
       
-      case "SendGrid":
-      case "Mailchimp":
-      case "Amazon SES":
-        if (!apiKey || !fromEmail) {
-          toast.error("API key and From Email are required");
-          return;
-        }
-        config = { apiKey, fromEmail, fromName };
-        localStorage.setItem(`emailService_${service.name}`, JSON.stringify({ fromEmail, fromName }));
-        break;
+      const updatedService = {
+        ...service,
+        isConfigured: true
+      };
+      
+      onSave(updatedService, config);
+      toast.success(`${service.name} configuration saved successfully`);
+    } catch (error) {
+      console.error("Error saving config:", error);
+      toast.error("Failed to save configuration");
+    } finally {
+      setIsSaving(false);
     }
-    
-    const updatedService = {
-      ...service,
-      isConfigured: true
-    };
-    
-    onSave(updatedService, config);
-    toast.success(`${service.name} configuration saved successfully`);
   };
   
   const handleTest = async () => {
@@ -101,17 +138,30 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
         
         const testResult = await testEmailConfig(config);
         if (testResult.success) {
-          toast.success(testResult.message);
+          toast.success(testResult.message || "SMTP connection test successful");
         } else {
-          toast.error(testResult.message);
+          toast.error(testResult.message || "Failed to test SMTP connection");
         }
       } catch (error) {
         toast.error("Failed to test SMTP connection");
+        console.error("SMTP test error:", error);
       } finally {
         setIsTesting(false);
       }
     }
   };
+  
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex justify-center items-center h-40">
+            <p>Loading configuration...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
     <Card>
@@ -241,11 +291,11 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
             {isTesting ? "Testing..." : "Test Connection"}
           </Button>
         )}
-        <Button variant="outline" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel} disabled={isSaving}>
           Cancel
         </Button>
-        <Button type="submit" form="email-service-form">
-          Save Configuration
+        <Button type="submit" form="email-service-form" disabled={isSaving}>
+          {isSaving ? "Saving..." : "Save Configuration"}
         </Button>
       </CardFooter>
     </Card>

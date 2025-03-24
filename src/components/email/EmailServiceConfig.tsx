@@ -13,7 +13,7 @@ import {
   getEmailConfig 
 } from "@/utils/emailValidation";
 import { useAuth } from "@/contexts/AuthContext";
-import { AlertCircle, HelpCircle, ExternalLink } from "lucide-react";
+import { AlertCircle, HelpCircle, ExternalLink, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EmailServiceConfigProps {
@@ -38,6 +38,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [diagnosticInfo, setDiagnosticInfo] = useState<string | null>(null);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -146,6 +147,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
     if (service.name === "SMTP") {
       setIsTesting(true);
       setConfigError(null);
+      setDiagnosticInfo(null);
       
       try {
         const config = { host, port, username, password, fromEmail, fromName };
@@ -166,6 +168,10 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
         } else {
           toast.error(testResult.message || "Failed to test SMTP connection");
           setConfigError(testResult.message || "Failed to test SMTP connection");
+          
+          if (testResult.diagnosticInfo) {
+            setDiagnosticInfo(testResult.diagnosticInfo);
+          }
         }
       } catch (error) {
         toast.error("Failed to test SMTP connection");
@@ -200,6 +206,11 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
             <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2" />
             <div>
               <p className="text-sm">{configError}</p>
+              {diagnosticInfo && (
+                <p className="text-sm mt-1 text-red-700">
+                  <span className="font-medium">Diagnostic info:</span> {diagnosticInfo}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -239,6 +250,9 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
               <li>Check if your email provider requires specific port settings</li>
               <li>Some email providers may have additional security settings that need to be enabled</li>
               <li>Check your spam folder for the test email</li>
+              <li>Try port 465 for SSL connections if port 587 (TLS) fails</li>
+              <li>Make sure your email service allows Less Secure App access or has app passwords enabled</li>
+              <li>Some email providers may block connections from cloud environments</li>
             </ul>
           </div>
         )}

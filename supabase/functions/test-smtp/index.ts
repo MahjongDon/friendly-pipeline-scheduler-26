@@ -28,13 +28,23 @@ serve(async (req) => {
     try {
       console.log("Attempting to connect to SMTP server...");
       
-      // Connect to the SMTP server with TLS
-      await client.connectTLS({
+      // Set connection timeout
+      const timeoutMs = 20000; // 20 second timeout
+      const connectPromise = client.connectTLS({
         hostname: host,
         port: Number(port),
         username: username,
         password: password,
+        debug: true, // Enable debug for more detailed logs
       });
+      
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`Connection timeout after ${timeoutMs}ms`)), timeoutMs);
+      });
+      
+      // Race the connection against the timeout
+      await Promise.race([connectPromise, timeoutPromise]);
       
       console.log("SMTP connection established successfully");
 
@@ -56,14 +66,22 @@ serve(async (req) => {
 
       console.log("Preparing to send test email...");
       
-      // Send test email to the user's email
-      const sendResult = await client.send({
+      // Send test email with timeout
+      const sendPromise = client.send({
         from: fromName ? `${fromName} <${fromEmail}>` : fromEmail,
         to: username,
         subject: testSubject,
         content: testBody,
         html: testBody,
       });
+      
+      // Set another timeout for sending
+      const sendTimeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`Send timeout after ${timeoutMs}ms`)), timeoutMs);
+      });
+      
+      // Race the send operation against timeout
+      const sendResult = await Promise.race([sendPromise, sendTimeoutPromise]);
       
       console.log("SMTP test email sent successfully", sendResult);
 
@@ -84,16 +102,24 @@ serve(async (req) => {
       console.error("SMTP connection or sending error:", smtpError);
       
       let errorMessage = smtpError.message;
+      let diagnosticInfo = "";
       
       // Add more specific error messages for common SMTP issues
       if (errorMessage.includes("timeout")) {
-        errorMessage = `Connection timeout. Please check your host and port settings. Error: ${errorMessage}`;
+        errorMessage = `Connection timeout. The SMTP server did not respond within the allowed time.`;
+        diagnosticInfo = "Check your firewall settings and ensure the host and port are correct.";
       } else if (errorMessage.includes("authentication")) {
-        errorMessage = `Authentication failed. Please check your username and password. Error: ${errorMessage}`;
+        errorMessage = `Authentication failed. Please check your username and password.`;
+        diagnosticInfo = "For Gmail, ensure you're using an App Password if 2FA is enabled.";
       } else if (errorMessage.includes("certificate")) {
-        errorMessage = `SSL/TLS certificate error. Error: ${errorMessage}`;
+        errorMessage = `SSL/TLS certificate error.`;
+        diagnosticInfo = "There was an issue with the server's security certificate.";
       } else if (errorMessage.includes("bufio")) {
-        errorMessage = `Connection error. This may be due to incorrect host/port or network issues. Error: ${errorMessage}`;
+        errorMessage = `Connection error. This may be due to incorrect host/port or network issues.`;
+        diagnosticInfo = "Try using different port numbers like 465 (SSL) or 587 (TLS) depending on your email provider.";
+      } else if (errorMessage.includes("Error: failed to lookup address")) {
+        errorMessage = `DNS lookup failed. Could not find the SMTP server.`;
+        diagnosticInfo = "Check that the hostname is correct.";
       }
       
       // Ensure connection is closed even on error
@@ -103,7 +129,17 @@ serve(async (req) => {
         console.error("Error closing SMTP connection:", closeError);
       }
       
-      throw new Error(`SMTP error: ${errorMessage}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `SMTP error: ${errorMessage}`,
+          diagnosticInfo: diagnosticInfo 
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200, // Return 200 even for SMTP errors so frontend can display the message
+        }
+      );
     }
   } catch (error) {
     console.error("SMTP test error:", error);
@@ -111,11 +147,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: `Failed to test SMTP connection: ${error.message}` 
+        message: `Failed to test SMTP connection: ${error.message}`,
+        stack: error.stack // Include stack trace for debugging
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
+        status: 200, // Return 200 even for errors so frontend can display the message
       }
     );
   }

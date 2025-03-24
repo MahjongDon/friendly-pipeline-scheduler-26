@@ -1,8 +1,6 @@
-
 import React, { useState } from "react";
-import { PlusCircle, Filter, Calendar as CalendarIcon, List, Users, ArrowUpDown, Check, Pencil, Trash } from "lucide-react";
+import { PlusCircle, Filter, SlidersHorizontal, CheckCircle, Circle, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { List, Users, ArrowUpDown, Check, Pencil, Trash } from "lucide-react";
 
 interface Task {
   id: string;

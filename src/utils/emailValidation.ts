@@ -200,12 +200,12 @@ export const saveEmailConfig = async (config: {
       if (error) throw error;
       return { success: true, data };
     } else {
-      // Insert new config
+      // Insert new config with all required fields
       const { data, error } = await supabase
         .from('smtp_configs')
         .insert({
-          user_id: userId,
-          ...configData
+          ...configData,
+          user_id: userId
         })
         .select();
       

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -72,7 +71,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
             setUsername(config.username || "");
             setFromEmail(config.fromEmail || "");
             setFromName(config.fromName || "");
-            setAuthMethod(config.authMethod || "plain");
+            setAuthMethod((config.authMethod || "plain") as "plain" | "oauth2");
             
             // Auth method specific fields
             if (config.authMethod === "oauth2") {
@@ -389,7 +388,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
                 <Label>Authentication Method</Label>
                 <RadioGroup 
                   value={authMethod} 
-                  onValueChange={(value) => setAuthMethod(value as "plain" | "oauth2")}
+                  onValueChange={(value: "plain" | "oauth2") => setAuthMethod(value)}
                   className="flex space-x-4"
                 >
                   <div className="flex items-center space-x-2">

@@ -13,44 +13,15 @@ import {
   getEmailConfig 
 } from "@/utils/emailValidation";
 import { useAuth } from "@/contexts/AuthContext";
-import { AlertCircle, HelpCircle, ExternalLink, Info, Lock, X, ChevronRight } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { Separator } from "@/components/ui/separator";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import SMTPConfigForm from "./SMTPConfigForm";
 
 interface EmailServiceConfigProps {
   service: EmailService;
   onSave: (service: EmailService, config: any) => void;
   onCancel: () => void;
 }
-
-// Gmail OAuth2 Help Component
-const GmailOAuthHelp = () => (
-  <div className="space-y-2 text-sm">
-    <h3 className="font-semibold">Setting up Gmail OAuth2</h3>
-    <ol className="list-decimal pl-5 space-y-2">
-      <li>Go to the <a href="https://console.developers.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a></li>
-      <li>Create a new project</li>
-      <li>Enable the Gmail API</li>
-      <li>Configure the OAuth consent screen</li>
-      <li>Create OAuth credentials (client ID and client secret)</li>
-      <li>Use the OAuth Playground to get a refresh token:
-        <ul className="list-disc pl-5 mt-1 space-y-1">
-          <li>Go to <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">OAuth Playground</a></li>
-          <li>Click the settings icon (⚙️) and check "Use your own OAuth credentials"</li>
-          <li>Enter your Client ID and Client Secret</li>
-          <li>Select "Gmail API v1" and the scopes <code>https://mail.google.com/</code></li>
-          <li>Click "Authorize APIs" and follow the prompts</li>
-          <li>Click "Exchange authorization code for tokens"</li>
-          <li>Copy the refresh token for use in this form</li>
-        </ul>
-      </li>
-    </ol>
-  </div>
-);
 
 const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   service,
@@ -75,7 +46,6 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [configError, setConfigError] = useState<string | null>(null);
   const [diagnosticInfo, setDiagnosticInfo] = useState<string | null>(null);
   const [cloudLimitation, setCloudLimitation] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -283,183 +253,6 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
     }
   };
   
-  const renderSmtpForm = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="smtp-host">SMTP Host</Label>
-          <Input 
-            id="smtp-host" 
-            placeholder="smtp.gmail.com" 
-            value={host}
-            onChange={(e) => setHost(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="smtp-port">SMTP Port</Label>
-          <div className="flex items-center space-x-2">
-            <Input 
-              id="smtp-port" 
-              placeholder="587" 
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-            />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="cursor-help">
-                    <HelpCircle className="h-4 w-4 text-gray-400" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">Recommended port: 587 (TLS). Port 465 (SSL) has compatibility issues.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="smtp-username">Username (Email)</Label>
-        <Input 
-          id="smtp-username" 
-          type="email"
-          placeholder="your.email@gmail.com" 
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label>Authentication Method</Label>
-        <RadioGroup 
-          value={authMethod} 
-          onValueChange={(value) => setAuthMethod(value as "plain" | "oauth2")}
-          className="flex space-x-4"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="plain" id="auth-plain" />
-            <Label htmlFor="auth-plain" className="cursor-pointer">Plain Password</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="oauth2" id="auth-oauth2" />
-            <Label htmlFor="auth-oauth2" className="cursor-pointer">OAuth2 (Required for Gmail)</Label>
-            
-            {host.includes("gmail") && authMethod === "oauth2" && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                type="button" 
-                onClick={() => setIsHelpOpen(true)}
-                className="p-1 h-auto text-xs text-blue-600"
-              >
-                Need help?
-              </Button>
-            )}
-          </div>
-        </RadioGroup>
-      </div>
-      
-      {authMethod === "plain" ? (
-        <div className="space-y-2">
-          <Label htmlFor="smtp-password">Password</Label>
-          <Input 
-            id="smtp-password" 
-            type="password" 
-            placeholder="Your SMTP password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {host.includes("gmail") && (
-            <p className="text-xs text-red-600 mt-1 flex items-center">
-              <Lock className="h-3 w-3 mr-1" />
-              Gmail no longer supports password authentication. Please use OAuth2 instead.
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium text-sm flex justify-between items-center">
-            <span>OAuth2 Credentials</span>
-            {host.includes("gmail") && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                type="button" 
-                onClick={() => setIsHelpOpen(true)}
-                className="h-7 text-xs px-2"
-              >
-                <Info className="h-3 w-3 mr-1" /> OAuth2 Setup Guide
-              </Button>
-            )}
-          </h4>
-          <div className="space-y-2">
-            <Label htmlFor="client-id">Client ID</Label>
-            <Input 
-              id="client-id" 
-              placeholder="Your OAuth2 Client ID" 
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="client-secret">Client Secret</Label>
-            <Input 
-              id="client-secret" 
-              type="password"
-              placeholder="Your OAuth2 Client Secret" 
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="refresh-token">Refresh Token</Label>
-            <Input 
-              id="refresh-token" 
-              type="password"
-              placeholder="Your OAuth2 Refresh Token" 
-              value={refreshToken}
-              onChange={(e) => setRefreshToken(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="access-token">Access Token (Optional)</Label>
-            <Input 
-              id="access-token" 
-              type="password"
-              placeholder="Your OAuth2 Access Token (optional)" 
-              value={accessToken}
-              onChange={(e) => setAccessToken(e.target.value)}
-            />
-          </div>
-        </div>
-      )}
-      
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="from-email">From Email</Label>
-          <Input 
-            id="from-email" 
-            type="email"
-            placeholder="noreply@yourcompany.com" 
-            value={fromEmail}
-            onChange={(e) => setFromEmail(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="from-name">From Name (Optional)</Label>
-          <Input 
-            id="from-name" 
-            placeholder="Your Company Name" 
-            value={fromName}
-            onChange={(e) => setFromName(e.target.value)}
-          />
-        </div>
-      </div>
-    </div>
-  );
-  
   const renderApiForm = () => (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -472,7 +265,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
         />
         {service.name === "SendGrid" && (
           <p className="text-xs text-gray-500 mt-1">
-            You can get your API key from the <a href="https://app.sendgrid.com/settings/api_keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">SendGrid API Keys page</a>.
+            You can get your API key from the SendGrid API Keys page.
           </p>
         )}
       </div>
@@ -497,13 +290,6 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           />
         </div>
       </div>
-      
-      {service.name === "Amazon SES" && (
-        <div className="bg-blue-50 text-blue-700 p-3 rounded-md text-sm mt-2">
-          <p className="font-medium">AWS Region Note:</p>
-          <p>The region will be extracted from your AWS credentials automatically.</p>
-        </div>
-      )}
     </div>
   );
   
@@ -520,101 +306,89 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   }
   
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Configure {service.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {configError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-start">
-              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2" />
+    <Card className="max-w-3xl mx-auto">
+      <CardHeader>
+        <CardTitle>Configure {service.name}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {configError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription className="flex items-start">
+              <AlertCircle className="h-5 w-5 text-destructive mt-0.5 mr-2 flex-shrink-0" />
               <div>
                 <p className="text-sm">{configError}</p>
                 {diagnosticInfo && (
-                  <p className="text-sm mt-1 text-red-700">
+                  <p className="text-sm mt-1 text-destructive/80">
                     <span className="font-medium">Diagnostic info:</span> {diagnosticInfo}
                   </p>
                 )}
               </div>
-            </div>
-          )}
+            </AlertDescription>
+          </Alert>
+        )}
 
-          {cloudLimitation && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800">
-              <h4 className="font-medium mb-1 flex items-center">
-                Using Gmail API for Email Sending
-              </h4>
-              <p className="text-sm mb-2">
-                Direct SMTP connections don't work in serverless environments, but don't worry! 
-                For Gmail, we'll use the Gmail API behind the scenes instead of SMTP.
-              </p>
-              <div className="text-sm mb-2">
-                <strong>Benefits:</strong>
-                <ul className="list-disc ml-5 space-y-1 mt-1">
-                  <li>Works reliably in cloud environments</li>
-                  <li>No need for SMTP port configuration</li>
-                  <li>Better security with OAuth2</li>
-                </ul>
-              </div>
-              <p className="text-sm">
-                Just configure your OAuth2 credentials and we'll handle the rest!
-              </p>
-            </div>
-          )}
-          
-          {service.name === "SMTP" && (
-            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
+        {service.name === "SMTP" && (
+          <Alert className="mb-4 bg-amber-50 border-amber-200 text-amber-800">
+            <AlertDescription>
               <h4 className="font-medium mb-1">Configuration Tips</h4>
               <ul className="text-sm list-disc pl-5 space-y-1">
                 <li>For Gmail, you must use OAuth2 authentication</li>
                 <li>We recommend port 587 for most reliable results</li>
                 <li>For Gmail specifically, we'll use the Gmail API instead of SMTP for better reliability</li>
               </ul>
-            </div>
-          )}
+            </AlertDescription>
+          </Alert>
+        )}
           
-          <form id="email-service-form" onSubmit={handleSave}>
-            {service.name === "SMTP" ? renderSmtpForm() : renderApiForm()}
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-end gap-2">
-          {service.name === "SMTP" && (
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={handleTest}
-              disabled={isTesting}
-            >
-              {isTesting ? "Testing..." : "Test Connection"}
-            </Button>
-          )}
-          <Button variant="outline" onClick={onCancel} disabled={isSaving}>
-            Cancel
+        <form id="email-service-form" onSubmit={handleSave}>
+          {service.name === "SMTP" ? (
+            <SMTPConfigForm 
+              host={host}
+              setHost={setHost}
+              port={port}
+              setPort={setPort}
+              username={username}
+              setUsername={setUsername}
+              password={password}
+              setPassword={setPassword}
+              fromEmail={fromEmail}
+              setFromEmail={setFromEmail}
+              fromName={fromName}
+              setFromName={setFromName}
+              authMethod={authMethod}
+              setAuthMethod={setAuthMethod}
+              clientId={clientId}
+              setClientId={setClientId}
+              clientSecret={clientSecret}
+              setClientSecret={setClientSecret}
+              refreshToken={refreshToken}
+              setRefreshToken={setRefreshToken}
+              accessToken={accessToken}
+              setAccessToken={setAccessToken}
+              cloudLimitation={cloudLimitation}
+            />
+          ) : renderApiForm()}
+        </form>
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
+        {service.name === "SMTP" && (
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleTest}
+            disabled={isTesting}
+          >
+            {isTesting ? "Testing..." : "Test Connection"}
           </Button>
-          <Button type="submit" form="email-service-form" disabled={isSaving}>
-            {isSaving ? "Saving..." : "Save Configuration"}
-          </Button>
-        </CardFooter>
-      </Card>
-
-      {/* Help Drawer - Slides in from the side instead of cluttering the main UI */}
-      <Drawer open={isHelpOpen} onOpenChange={setIsHelpOpen}>
-        <DrawerContent className="max-h-[85vh] overflow-y-auto">
-          <DrawerHeader className="border-b">
-            <DrawerTitle>Gmail OAuth2 Setup Guide</DrawerTitle>
-          </DrawerHeader>
-          <div className="p-6">
-            <GmailOAuthHelp />
-          </div>
-          <DrawerFooter className="pt-2">
-            <DrawerClose asChild>
-              <Button variant="outline">Close Guide</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    </>
+        )}
+        <Button variant="outline" onClick={onCancel} disabled={isSaving}>
+          Cancel
+        </Button>
+        <Button type="submit" form="email-service-form" disabled={isSaving}>
+          {isSaving ? "Saving..." : "Save Configuration"}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

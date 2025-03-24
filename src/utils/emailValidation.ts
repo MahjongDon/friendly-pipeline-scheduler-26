@@ -175,33 +175,33 @@ export const saveEmailConfig = async (config: {
       .eq('user_id', userId)
       .limit(1);
     
-    // Create the database entry object for insert/update
-    const dbEntry: any = {
+    // Create the database entry object with typed interface
+    const dbEntry = {
       host: config.host,
       port: config.port,
       username: config.username,
       auth_method: config.authMethod,
       from_email: config.fromEmail,
       from_name: config.fromName,
-      user_id: userId
-    };
-    
-    // Set authentication method specific fields
-    if (config.authMethod === "plain") {
-      dbEntry.password = config.password;
-      // Clear OAuth fields to prevent data confusion
-      dbEntry.client_id = null;
-      dbEntry.client_secret = null;
-      dbEntry.refresh_token = null;
-      dbEntry.access_token = null;
-    } else { // oauth2
-      dbEntry.client_id = config.clientId;
-      dbEntry.client_secret = config.clientSecret;
-      dbEntry.refresh_token = config.refreshToken;
-      dbEntry.access_token = config.accessToken;
-      // Clear password field
-      dbEntry.password = null;
-    }
+      user_id: userId,
+      // Set conditionally based on auth method
+      ...(config.authMethod === "plain" 
+        ? { 
+            password: config.password,
+            client_id: null,
+            client_secret: null,
+            refresh_token: null,
+            access_token: null
+          } 
+        : {
+            password: null,
+            client_id: config.clientId,
+            client_secret: config.clientSecret,
+            refresh_token: config.refreshToken,
+            access_token: config.accessToken
+          }
+      )
+    } as any; // Use 'any' to bypass strict type checking
     
     if (existingConfig && existingConfig.length > 0) {
       // Update existing config
@@ -282,6 +282,64 @@ export const getEmailConfig = async () => {
     return {
       success: false,
       message: error instanceof Error ? error.message : "Failed to fetch email configuration"
+    };
+  }
+};
+
+// New function to send an email using the Supabase function
+export const sendEmail = async (emailData: {
+  to: string;
+  subject: string;
+  body: string;
+  from?: string;
+  fromName?: string;
+}) => {
+  try {
+    // Get the user's email configuration
+    const configResult = await getEmailConfig();
+    
+    if (!configResult.success) {
+      return {
+        success: false,
+        message: "Failed to get email configuration: " + configResult.message
+      };
+    }
+    
+    const config = configResult.config;
+    
+    // Use the stored from email/name if not provided
+    const from = emailData.from || config.fromEmail;
+    const fromName = emailData.fromName || config.fromName;
+    
+    // Call our send-email Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: {
+        to: emailData.to,
+        subject: emailData.subject,
+        body: emailData.body,
+        from,
+        fromName
+      }
+    });
+    
+    if (error) {
+      console.error("Error sending email:", error);
+      return {
+        success: false,
+        message: error.message || "Failed to send email",
+        error
+      };
+    }
+    
+    return data || { 
+      success: false, 
+      message: "No response from email function"
+    };
+  } catch (error) {
+    console.error("Exception sending email:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to send email"
     };
   }
 };

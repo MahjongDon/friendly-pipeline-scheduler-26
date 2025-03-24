@@ -1,5 +1,6 @@
+
 import React, { useState } from "react";
-import { Check, Plus, Search, Trash } from "lucide-react";
+import { Check, Cog, Plus, Search, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -139,10 +140,13 @@ const Email = () => {
             <div className="flex items-center gap-3">
               <Button 
                 onClick={() => setIsSetupOpen(true)}
+                variant="outline"
+                className="flex items-center"
               >
+                <Cog className="h-4 w-4 mr-2" />
                 Email Settings
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setIsComposeOpen(true)}>
+              <Button onClick={() => setIsComposeOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" /> Compose
               </Button>
             </div>
@@ -158,6 +162,13 @@ const Email = () => {
                     onClick={() => setIsComposeOpen(true)}
                   >
                     <Plus className="h-4 w-4 mr-2" /> Compose
+                  </Button>
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => setIsSetupOpen(true)}
+                  >
+                    <Cog className="h-4 w-4 mr-2" /> Email Settings
                   </Button>
                 </div>
                 <div className="space-y-1">

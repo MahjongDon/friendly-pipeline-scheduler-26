@@ -65,7 +65,7 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
     const template = templates.find(t => t.id === templateId);
     if (template) {
       form.setValue("subject", template.subject);
-      form.setValue("body", template.content);
+      form.setValue("body", template.body);
       setSelectedTemplate(templateId);
       setActiveTab("compose");
     }
@@ -187,7 +187,7 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
           
           <TabsContent value="templates">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              {templates.map((template) => (
+              {templates && templates.map((template) => (
                 <div 
                   key={template.id}
                   className={`border rounded-md p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
@@ -198,9 +198,9 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                   <h4 className="font-medium mb-1">{template.name}</h4>
                   <p className="text-sm text-muted-foreground mb-2">{template.subject}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {template.content.length > 100 
-                      ? template.content.substring(0, 100) + "..." 
-                      : template.content}
+                    {template.body.length > 100 
+                      ? template.body.substring(0, 100) + "..." 
+                      : template.body}
                   </p>
                 </div>
               ))}

@@ -50,36 +50,6 @@ const Profile = () => {
     try {
       setLoading(true);
       
-      // First check if profiles table exists
-      const { error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .limit(1);
-      
-      if (checkError && checkError.message.includes('does not exist')) {
-        console.log('Profiles table does not exist yet');
-        // Use placeholder data for now
-        const placeholderProfile = {
-          id: user?.id || '',
-          first_name: '',
-          last_name: '',
-          company: '',
-          job_title: '',
-          phone: '',
-          avatar_url: null
-        };
-        setProfile(placeholderProfile);
-        setFormData({
-          first_name: placeholderProfile.first_name || '',
-          last_name: placeholderProfile.last_name || '',
-          company: placeholderProfile.company || '',
-          job_title: placeholderProfile.job_title || '',
-          phone: placeholderProfile.phone || '',
-        });
-        return;
-      }
-      
-      // If table exists, fetch the profile
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -87,6 +57,46 @@ const Profile = () => {
         .single();
       
       if (error) {
+        console.error('Error fetching profile:', error);
+        
+        // If the profile doesn't exist yet, create an empty one
+        if (error.code === 'PGRST116') {
+          // Create a new profile
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user?.id,
+              first_name: '',
+              last_name: '',
+              company: '',
+              job_title: '',
+              phone: ''
+            });
+            
+          if (insertError) {
+            throw insertError;
+          }
+          
+          // Fetch the newly created profile
+          const { data: newProfile, error: fetchError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user?.id)
+            .single();
+            
+          if (fetchError) throw fetchError;
+          
+          setProfile(newProfile);
+          setFormData({
+            first_name: newProfile.first_name || '',
+            last_name: newProfile.last_name || '',
+            company: newProfile.company || '',
+            job_title: newProfile.job_title || '',
+            phone: newProfile.phone || '',
+          });
+          return;
+        }
+        
         throw error;
       }
       
@@ -99,21 +109,9 @@ const Profile = () => {
           job_title: data.job_title || '',
           phone: data.phone || '',
         });
-      } else {
-        // Profile doesn't exist yet, use empty data
-        const emptyProfile = {
-          id: user?.id || '',
-          first_name: '',
-          last_name: '',
-          company: '',
-          job_title: '',
-          phone: '',
-          avatar_url: null
-        };
-        setProfile(emptyProfile);
-      }
+      } 
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in profile process:', error);
       toast.error('Failed to load profile data');
     } finally {
       setLoading(false);
@@ -132,18 +130,6 @@ const Profile = () => {
     try {
       setLoading(true);
       
-      // Check if profiles table exists first
-      const { error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .limit(1);
-      
-      if (checkError && checkError.message.includes('does not exist')) {
-        // Table doesn't exist yet
-        toast.info('Profile functionality will be available soon');
-        return;
-      }
-      
       const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -153,7 +139,7 @@ const Profile = () => {
           company: formData.company,
           job_title: formData.job_title,
           phone: formData.phone,
-          updated_at: new Date()
+          updated_at: new Date().toISOString()
         });
       
       if (error) throw error;

@@ -70,11 +70,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
+      // Get the current URL of the application for redirect
+      const redirectUrl = window.location.origin + "/auth";
+      console.log("Email redirect URL:", redirectUrl);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: window.location.origin + "/auth",
+          emailRedirectTo: redirectUrl,
         }
       });
       
@@ -87,10 +91,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resendVerificationEmail = async () => {
     try {
+      // Get the current URL of the application for redirect
+      const redirectUrl = window.location.origin + "/auth";
+      console.log("Email resend redirect URL:", redirectUrl);
+      
       // This will only work if the user has already signed up
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: user?.email || '',
+        options: {
+          emailRedirectTo: redirectUrl,
+        }
       });
       
       if (error) {

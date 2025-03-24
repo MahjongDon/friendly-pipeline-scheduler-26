@@ -14,12 +14,21 @@ serve(async (req) => {
   }
 
   try {
-    const { host, port, username, password, fromEmail, fromName } = await req.json();
+    const { host, port, username, password, fromEmail, fromName, authMethod, clientId, clientSecret, refreshToken, accessToken } = await req.json();
     
-    console.log(`Testing SMTP connection to ${host}:${port}`);
+    console.log(`Testing SMTP connection to ${host}:${port} with auth method: ${authMethod}`);
     
-    if (!host || !port || !username || !password || !fromEmail) {
+    if (!host || !port || !fromEmail) {
       throw new Error("Missing required SMTP configuration parameters");
+    }
+    
+    // Check auth method specific requirements
+    if (authMethod === "plain" && (!username || !password)) {
+      throw new Error("Username and password are required for plain authentication");
+    }
+    
+    if (authMethod === "oauth2" && (!username || !clientId || !clientSecret || !refreshToken)) {
+      throw new Error("Username, Client ID, Client Secret, and Refresh Token are required for OAuth2 authentication");
     }
     
     // Create SMTP client
@@ -38,14 +47,32 @@ serve(async (req) => {
       // Cloud environment notice
       console.log("Note: SMTP connections may be restricted in Supabase Edge Functions");
       
+      // Set auth options based on authentication method
+      const auth: any = {};
+      
+      if (authMethod === "oauth2") {
+        auth.username = username;
+        auth.oauth2 = {
+          clientId,
+          clientSecret,
+          refreshToken,
+          accessToken, // This might be optional if you have a refresh token
+        };
+        
+        console.log("Using OAuth2 authentication");
+      } else {
+        // Default to plain auth
+        auth.username = username;
+        auth.password = password;
+        console.log("Using plain authentication");
+      }
+      
       // Always use TLS approach regardless of port (both 587 and 465)
-      // This is a workaround for Deno compatibility issues with port 465
       console.log(`Using TLS connection for port ${portNumber}`);
       connectPromise = client.connectTLS({
         hostname: host,
         port: portNumber,
-        username: username,
-        password: password,
+        ...auth,
         debug: true,
       });
       
@@ -69,6 +96,7 @@ serve(async (req) => {
           <li>Host: ${host}</li>
           <li>Port: ${port}</li>
           <li>Username: ${username}</li>
+          <li>Authentication Method: ${authMethod}</li>
           <li>From Email: ${fromEmail}</li>
           <li>From Name: ${fromName || fromEmail}</li>
         </ul>
@@ -121,8 +149,13 @@ serve(async (req) => {
           errorMessage = `Connection timeout. The SMTP server did not respond within the allowed time.`;
           diagnosticInfo = "This is common in serverless environments. Consider using a third-party email service API instead.";
         } else if (errorMessage.includes("authentication")) {
-          errorMessage = `Authentication failed. Please check your username and password.`;
-          diagnosticInfo = "For Gmail, ensure you're using an App Password if 2FA is enabled.";
+          if (authMethod === "oauth2") {
+            errorMessage = `OAuth2 authentication failed. Please check your client ID, client secret, and tokens.`;
+            diagnosticInfo = "Ensure your OAuth2 credentials are correct and that you have appropriate permissions.";
+          } else {
+            errorMessage = `Authentication failed. Please check your username and password.`;
+            diagnosticInfo = "For Gmail, you need to use OAuth2 authentication as less secure app access is disabled.";
+          }
         } else if (errorMessage.includes("certificate")) {
           errorMessage = `SSL/TLS certificate error.`;
           diagnosticInfo = "There was an issue with the server's security certificate.";

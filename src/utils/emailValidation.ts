@@ -1,12 +1,18 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const validateEmailConfig = (config: {
   host: string;
   port: string;
   username: string;
-  password: string;
+  password?: string;
   fromEmail: string;
   fromName?: string;
+  authMethod: "plain" | "oauth2";
+  clientId?: string;
+  clientSecret?: string;
+  refreshToken?: string;
+  accessToken?: string;
 }) => {
   const errors: string[] = [];
   
@@ -29,11 +35,27 @@ export const validateEmailConfig = (config: {
     errors.push("Username must be a valid email address");
   }
   
-  // Password validation
-  if (!config.password) {
-    errors.push("Password is required");
-  } else if (config.password.length < 8) {
-    errors.push("Password must be at least 8 characters long");
+  // Auth method specific validation
+  if (config.authMethod === "plain") {
+    // Password validation for plain auth
+    if (!config.password) {
+      errors.push("Password is required for plain authentication");
+    } else if (config.password.length < 8) {
+      errors.push("Password must be at least 8 characters long");
+    }
+  } else if (config.authMethod === "oauth2") {
+    // OAuth2 validation
+    if (!config.clientId) {
+      errors.push("Client ID is required for OAuth2 authentication");
+    }
+    
+    if (!config.clientSecret) {
+      errors.push("Client Secret is required for OAuth2 authentication");
+    }
+    
+    if (!config.refreshToken) {
+      errors.push("Refresh Token is required for OAuth2 authentication");
+    }
   }
   
   // From email validation
@@ -53,14 +75,22 @@ export const testEmailConfig = async (config: {
   host: string;
   port: string;
   username: string;
-  password: string;
+  password?: string;
   fromEmail: string;
   fromName?: string;
+  authMethod: "plain" | "oauth2";
+  clientId?: string;
+  clientSecret?: string;
+  refreshToken?: string;
+  accessToken?: string;
 }) => {
   try {
     console.log("Testing SMTP configuration:", {
       ...config, 
-      password: "********" // Mask password in logs
+      password: config.password ? "********" : undefined,
+      clientSecret: config.clientSecret ? "********" : undefined,
+      refreshToken: config.refreshToken ? "********" : undefined,
+      accessToken: config.accessToken ? "********" : undefined
     });
     
     const { data, error } = await supabase.functions.invoke('test-smtp', {
@@ -104,9 +134,14 @@ export const saveEmailConfig = async (config: {
   host: string;
   port: string;
   username: string;
-  password: string;
+  password?: string;
   fromEmail: string;
   fromName?: string;
+  authMethod: "plain" | "oauth2";
+  clientId?: string;
+  clientSecret?: string;
+  refreshToken?: string;
+  accessToken?: string;
 }) => {
   try {
     // Check if user is authenticated
@@ -127,18 +162,30 @@ export const saveEmailConfig = async (config: {
       .eq('user_id', userId)
       .limit(1);
     
+    const configData = {
+      host: config.host,
+      port: config.port,
+      username: config.username,
+      auth_method: config.authMethod,
+      from_email: config.fromEmail,
+      from_name: config.fromName,
+      // Only include auth-specific fields based on the method
+      ...(config.authMethod === "plain" 
+        ? { password: config.password } 
+        : {
+            client_id: config.clientId,
+            client_secret: config.clientSecret,
+            refresh_token: config.refreshToken,
+            access_token: config.accessToken
+          }
+      )
+    };
+    
     if (existingConfig && existingConfig.length > 0) {
       // Update existing config
       const { data, error } = await supabase
         .from('smtp_configs')
-        .update({
-          host: config.host,
-          port: config.port,
-          username: config.username,
-          password: config.password,
-          from_email: config.fromEmail,
-          from_name: config.fromName
-        })
+        .update(configData)
         .eq('id', existingConfig[0].id)
         .select();
       
@@ -150,12 +197,7 @@ export const saveEmailConfig = async (config: {
         .from('smtp_configs')
         .insert({
           user_id: userId,
-          host: config.host,
-          port: config.port,
-          username: config.username,
-          password: config.password,
-          from_email: config.fromEmail,
-          from_name: config.fromName
+          ...configData
         })
         .select();
       
@@ -206,7 +248,12 @@ export const getEmailConfig = async () => {
         host: data.host,
         port: data.port,
         username: data.username,
-        password: data.password,
+        authMethod: data.auth_method || "plain",
+        password: data.password, // Will be included only if auth_method is "plain"
+        clientId: data.client_id, // Will be included only if auth_method is "oauth2"
+        clientSecret: data.client_secret, // Will be included only if auth_method is "oauth2"
+        refreshToken: data.refresh_token, // Will be included only if auth_method is "oauth2"
+        accessToken: data.access_token, // Will be included only if auth_method is "oauth2"
         fromEmail: data.from_email,
         fromName: data.from_name
       } 

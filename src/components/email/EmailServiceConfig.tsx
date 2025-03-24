@@ -13,8 +13,10 @@ import {
   getEmailConfig 
 } from "@/utils/emailValidation";
 import { useAuth } from "@/contexts/AuthContext";
-import { AlertCircle, HelpCircle, ExternalLink, Info } from "lucide-react";
+import { AlertCircle, HelpCircle, ExternalLink, Info, Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface EmailServiceConfigProps {
   service: EmailService;
@@ -34,6 +36,11 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [port, setPort] = useState("587"); // Default TLS port
   const [fromEmail, setFromEmail] = useState("");
   const [fromName, setFromName] = useState("");
+  const [authMethod, setAuthMethod] = useState<"plain" | "oauth2">("plain");
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [refreshToken, setRefreshToken] = useState("");
+  const [accessToken, setAccessToken] = useState("");
   const [isTesting, setIsTesting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +72,18 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
             setUsername(config.username || "");
             setFromEmail(config.fromEmail || "");
             setFromName(config.fromName || "");
-            // We don't set the password here for security reasons
+            setAuthMethod(config.authMethod || "plain");
+            
+            // Auth method specific fields
+            if (config.authMethod === "oauth2") {
+              setClientId(config.clientId || "");
+              setClientSecret(config.clientSecret || "");
+              setRefreshToken(config.refreshToken || "");
+              setAccessToken(config.accessToken || "");
+            } else {
+              // We don't set the password here for security reasons
+            }
+            
             toast.info("Loaded existing SMTP configuration");
           }
         } catch (error) {
@@ -93,7 +111,19 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
     try {
       switch (service.name) {
         case "SMTP":
-          config = { host, port, username, password, fromEmail, fromName };
+          config = { 
+            host, 
+            port, 
+            username, 
+            authMethod,
+            ...(authMethod === "plain" 
+              ? { password } 
+              : { clientId, clientSecret, refreshToken, accessToken }
+            ),
+            fromEmail, 
+            fromName 
+          };
+          
           validationResult = validateEmailConfig(config);
           
           if (!validationResult.isValid) {
@@ -152,7 +182,19 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
       setCloudLimitation(false);
       
       try {
-        const config = { host, port, username, password, fromEmail, fromName };
+        const config = { 
+          host, 
+          port, 
+          username, 
+          authMethod,
+          ...(authMethod === "plain" 
+            ? { password } 
+            : { clientId, clientSecret, refreshToken, accessToken }
+          ),
+          fromEmail, 
+          fromName 
+        };
+        
         const validationResult = validateEmailConfig(config);
         
         if (!validationResult.isValid) {
@@ -243,12 +285,12 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           </div>
         )}
         
-        {service.name === "SMTP" && (
+        {service.name === "SMTP" && host.includes("gmail") && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800">
             <h4 className="font-medium mb-1 flex items-center">
-              Gmail SMTP Setup Help
+              Gmail OAuth2 Setup Help
               <a 
-                href="https://support.google.com/accounts/answer/185833?hl=en" 
+                href="https://developers.google.com/gmail/api/quickstart/js" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="ml-1 text-blue-600 hover:underline inline-flex items-center"
@@ -257,15 +299,25 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
               </a>
             </h4>
             <p className="text-sm mb-2">
-              If you're using Gmail, you'll need to use an App Password instead of your regular password.
+              Google now requires OAuth2 authentication for Gmail SMTP. Follow these steps to set it up:
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-1">
-              <li>Enable 2-Step Verification on your Google account</li>
-              <li>Go to your Google Account settings</li>
-              <li>Select "Security"</li>
-              <li>Under "Signing in to Google," select "App passwords"</li>
-              <li>Generate a new app password for "Mail"</li>
-              <li>Use that 16-character password here</li>
+              <li>Go to the <a href="https://console.developers.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a></li>
+              <li>Create a new project</li>
+              <li>Enable the Gmail API</li>
+              <li>Configure the OAuth consent screen</li>
+              <li>Create OAuth credentials (client ID and client secret)</li>
+              <li>Use the OAuth Playground to get a refresh token:
+                <ul className="list-disc pl-5 mt-1">
+                  <li>Go to <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">OAuth Playground</a></li>
+                  <li>Click the settings icon (⚙️) and check "Use your own OAuth credentials"</li>
+                  <li>Enter your Client ID and Client Secret</li>
+                  <li>Select "Gmail API v1" and the scopes <code>https://mail.google.com/</code></li>
+                  <li>Click "Authorize APIs" and follow the prompts</li>
+                  <li>Click "Exchange authorization code for tokens"</li>
+                  <li>Copy the refresh token for use in this form</li>
+                </ul>
+              </li>
             </ol>
           </div>
         )}
@@ -274,12 +326,11 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
             <h4 className="font-medium mb-1">Troubleshooting Tips</h4>
             <ul className="text-sm list-disc pl-5 space-y-1">
-              <li>Ensure you're using an app password if using Gmail</li>
+              <li>For Gmail, you must use OAuth2 authentication as Google has disabled less secure app access</li>
               <li><strong>Use port 587 for most reliable results</strong> (port 465 has compatibility issues)</li>
               <li>Check if your email provider requires specific port settings</li>
               <li>Some email providers may have additional security settings that need to be enabled</li>
               <li>Check your spam folder for the test email</li>
-              <li>Make sure your email service allows Less Secure App access or has app passwords enabled</li>
               <li><strong>Note:</strong> Direct SMTP connections often fail in serverless environments due to network restrictions</li>
             </ul>
           </div>
@@ -335,15 +386,84 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="smtp-password">Password (App Password for Gmail)</Label>
-                <Input 
-                  id="smtp-password" 
-                  type="password" 
-                  placeholder="Your SMTP password or Gmail App Password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <Label>Authentication Method</Label>
+                <RadioGroup 
+                  value={authMethod} 
+                  onValueChange={(value) => setAuthMethod(value as "plain" | "oauth2")}
+                  className="flex space-x-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="plain" id="auth-plain" />
+                    <Label htmlFor="auth-plain" className="cursor-pointer">Plain Password</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="oauth2" id="auth-oauth2" />
+                    <Label htmlFor="auth-oauth2" className="cursor-pointer">OAuth2 (Required for Gmail)</Label>
+                  </div>
+                </RadioGroup>
               </div>
+              
+              {authMethod === "plain" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="smtp-password">Password</Label>
+                  <Input 
+                    id="smtp-password" 
+                    type="password" 
+                    placeholder="Your SMTP password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  {host.includes("gmail") && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center">
+                      <Lock className="h-3 w-3 mr-1" />
+                      Gmail no longer supports password authentication. Please use OAuth2 instead.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4 border p-4 rounded-md bg-gray-50">
+                  <h4 className="font-medium text-sm">OAuth2 Credentials</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="client-id">Client ID</Label>
+                    <Input 
+                      id="client-id" 
+                      placeholder="Your OAuth2 Client ID" 
+                      value={clientId}
+                      onChange={(e) => setClientId(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="client-secret">Client Secret</Label>
+                    <Input 
+                      id="client-secret" 
+                      type="password"
+                      placeholder="Your OAuth2 Client Secret" 
+                      value={clientSecret}
+                      onChange={(e) => setClientSecret(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="refresh-token">Refresh Token</Label>
+                    <Input 
+                      id="refresh-token" 
+                      type="password"
+                      placeholder="Your OAuth2 Refresh Token" 
+                      value={refreshToken}
+                      onChange={(e) => setRefreshToken(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="access-token">Access Token (Optional)</Label>
+                    <Input 
+                      id="access-token" 
+                      type="password"
+                      placeholder="Your OAuth2 Access Token (optional)" 
+                      value={accessToken}
+                      onChange={(e) => setAccessToken(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

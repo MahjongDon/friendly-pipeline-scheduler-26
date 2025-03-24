@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PlusCircle, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ const Contacts: React.FC = () => {
   const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [currentContact, setCurrentContact] = useState<Contact | undefined>(undefined);
+  const [activeProfileTab, setActiveProfileTab] = useState("details");
 
   const handleApplyFilters = () => {
     toast.success("Filters applied successfully");
@@ -44,29 +45,20 @@ const Contacts: React.FC = () => {
 
   const handleViewProfile = (contact: Contact) => {
     setCurrentContact(contact);
+    setActiveProfileTab("details");
     setIsProfileDialogOpen(true);
   };
 
   const handleAddNote = (contact: Contact) => {
     setCurrentContact(contact);
+    setActiveProfileTab("notes");
     setIsProfileDialogOpen(true);
-    // Set a timeout to allow the dialog to open and then switch to the notes tab
-    setTimeout(() => {
-      const tabs = document.querySelector('[role="tablist"]');
-      const notesTab = tabs?.querySelector('[value="notes"]') as HTMLButtonElement;
-      if (notesTab) notesTab.click();
-    }, 100);
   };
 
   const handleAddToCampaign = (contact: Contact) => {
     setCurrentContact(contact);
+    setActiveProfileTab("campaigns");
     setIsProfileDialogOpen(true);
-    // Set a timeout to allow the dialog to open and then switch to the campaigns tab
-    setTimeout(() => {
-      const tabs = document.querySelector('[role="tablist"]');
-      const campaignsTab = tabs?.querySelector('[value="campaigns"]') as HTMLButtonElement;
-      if (campaignsTab) campaignsTab.click();
-    }, 100);
   };
 
   const handleSaveContact = (formData: Partial<Contact>) => {

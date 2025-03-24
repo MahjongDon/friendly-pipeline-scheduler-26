@@ -1,7 +1,7 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Bell, Search, Settings, User } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Bell, Search, Settings, User, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,9 +12,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   
   // Get the page title based on the current route
   const getPageTitle = () => {
@@ -24,6 +28,22 @@ const Header = () => {
     if (path === "/tasks") return "Tasks";
     if (path === "/calendar") return "Calendar";
     return "CRM Suite";
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("You have been signed out");
+    navigate("/auth");
+  };
+
+  const handleProfileClick = () => {
+    toast.info("Profile page coming soon");
+    // This would navigate to a profile page when implemented
+    // navigate("/profile");
+  };
+
+  const handleSettingsClick = () => {
+    navigate("/settings");
   };
 
   return (
@@ -49,7 +69,12 @@ const Header = () => {
             <Bell className="h-5 w-5" />
           </Button>
           
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-muted-foreground"
+            onClick={handleSettingsClick}
+          >
             <Settings className="h-5 w-5" />
           </Button>
           
@@ -64,12 +89,17 @@ const Header = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                {user ? user.email : 'My Account'}
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleProfileClick}>Profile</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSettingsClick}>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Log out</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Log out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

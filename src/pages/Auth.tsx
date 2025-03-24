@@ -30,13 +30,24 @@ const Auth = () => {
   
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
+    
     setLoading(true);
     
     try {
       const { error, data } = await signUp(email, password);
       
       if (error) {
-        toast.error(error.message);
+        // Check for specific errors
+        if (error.message.includes("already registered")) {
+          toast.error("This email is already registered. Please log in instead.");
+        } else {
+          toast.error(error.message);
+        }
       } else {
         setIsSignUp(true);
         toast.success("Check your email for the confirmation link!");
@@ -60,6 +71,8 @@ const Auth = () => {
         if (error.message.includes("Email not confirmed")) {
           setIsSignUp(true);
           toast.error("Please verify your email before signing in");
+        } else if (error.message.includes("Invalid login credentials")) {
+          toast.error("Invalid email or password");
         } else {
           toast.error(error.message);
         }
@@ -90,11 +103,11 @@ const Auth = () => {
     setIsSignUp(false);
   };
   
-  // Show loading state while checking authentication
   if (loading && !isSignUp) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">Loading...</p>
       </div>
     );
   }
@@ -207,7 +220,12 @@ const Auth = () => {
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Logging in..." : "Login"}
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Logging in...
+                      </>
+                    ) : "Login"}
                   </Button>
                 </form>
               </CardContent>
@@ -250,7 +268,12 @@ const Auth = () => {
                     </p>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Creating account..." : "Create Account"}
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating account...
+                      </>
+                    ) : "Create Account"}
                   </Button>
                 </form>
               </CardContent>

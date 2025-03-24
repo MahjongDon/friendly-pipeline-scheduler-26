@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +34,18 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [newNote, setNewNote] = useState("");
   const [campaign, setCampaign] = useState("");
+  
+  // Reset state when dialog opens with a new contact
+  useEffect(() => {
+    if (open && contact) {
+      // Reset the new note input and campaign input when the dialog opens
+      setNewNote("");
+      setCampaign("");
+      
+      // Keep the notes state as is, as we want to persist notes between dialog openings
+      // In a real app, you would fetch notes from a database here
+    }
+  }, [open, contact]);
 
   const handleAddNote = () => {
     if (!newNote.trim()) return;
@@ -56,7 +67,12 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
     toast.success(`Added ${contact?.name} to campaign: ${campaign}`);
     setCampaign("");
   };
+  
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
 
+  // Safety check - don't render if contact is null
   if (!contact) return null;
 
   return (
@@ -81,7 +97,7 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
           </div>
         </DialogHeader>
         
-        <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="mt-2">
+        <Tabs defaultValue="details" value={activeTab} onValueChange={handleTabChange} className="mt-2">
           <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="notes">Notes</TabsTrigger>

@@ -30,14 +30,41 @@ const ContactItem: React.FC<ContactItemProps> = ({
   onAddNote,
   onAddToCampaign
 }) => {
-  const handleEmailClick = () => {
+  const handleEmailClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     window.open(`mailto:${contact.email}`);
     toast.success(`Composing email to ${contact.name}`);
   };
 
-  const handlePhoneClick = () => {
+  const handlePhoneClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     window.open(`tel:${contact.phone}`);
     toast.success(`Calling ${contact.name}`);
+  };
+  
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit(contact);
+  };
+  
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(contact.id);
+  };
+  
+  const handleAddNoteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAddNote(contact);
+  };
+  
+  const handleAddToCampaignClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAddToCampaign(contact);
+  };
+  
+  const handleViewProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onViewProfile(contact);
   };
 
   return (
@@ -83,27 +110,27 @@ const ContactItem: React.FC<ContactItemProps> = ({
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => onViewProfile(contact)}>
+            <DropdownMenuItem onClick={handleViewProfileClick}>
               View profile
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(contact)}>
+            <DropdownMenuItem onClick={handleEditClick}>
               Edit contact
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onAddNote(contact)}>
+            <DropdownMenuItem onClick={handleAddNoteClick}>
               Add note
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onAddToCampaign(contact)}>
+            <DropdownMenuItem onClick={handleAddToCampaignClick}>
               Add to campaign
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               className="text-destructive"
-              onClick={() => onDelete(contact.id)}
+              onClick={handleDeleteClick}
             >
               Delete contact
             </DropdownMenuItem>

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, AlertCircle } from "lucide-react";
+import { ArrowLeft, Mail, AlertCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
@@ -16,8 +16,9 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+  const [resendingEmail, setResendingEmail] = useState(false);
   const navigate = useNavigate();
-  const { user, signIn, signUp, isVerified } = useAuth();
+  const { user, signIn, signUp, resendVerificationEmail, isVerified } = useAuth();
   
   // Check if user is already authenticated
   useEffect(() => {
@@ -73,6 +74,15 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  const handleResendVerificationEmail = async () => {
+    setResendingEmail(true);
+    try {
+      await resendVerificationEmail();
+    } finally {
+      setResendingEmail(false);
+    }
+  };
   
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -114,10 +124,24 @@ const Auth = () => {
                 </div>
               </div>
               <p className="text-sm text-gray-500">
-                If you don't see the email, check your spam folder or try again.
+                If you don't see the email, check your spam folder or request a new verification email.
               </p>
             </CardContent>
             <CardFooter className="flex flex-col space-y-2">
+              <Button 
+                className="w-full"
+                onClick={handleResendVerificationEmail}
+                disabled={resendingEmail}
+              >
+                {resendingEmail ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Resend Verification Email"
+                )}
+              </Button>
               <Button 
                 variant="outline" 
                 className="w-full" 

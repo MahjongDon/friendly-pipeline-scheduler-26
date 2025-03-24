@@ -13,6 +13,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any; data: any }>;
   signOut: () => Promise<void>;
+  resendVerificationEmail: () => Promise<{ error: any }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -84,6 +85,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resendVerificationEmail = async () => {
+    try {
+      // This will only work if the user has already signed up
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user?.email || '',
+      });
+      
+      if (error) {
+        console.error("Error resending verification email:", error);
+        if (error.message.includes("For security purposes")) {
+          toast.error("Please wait a few minutes before requesting another email");
+        } else {
+          toast.error(error.message);
+        }
+      } else {
+        toast.success("Verification email resent. Please check your inbox");
+      }
+      
+      return { error };
+    } catch (error) {
+      console.error("Unexpected error resending verification email:", error);
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -99,7 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading, 
       isVerified,
       signIn, 
-      signUp, 
+      signUp,
+      resendVerificationEmail, 
       signOut 
     }}>
       {children}

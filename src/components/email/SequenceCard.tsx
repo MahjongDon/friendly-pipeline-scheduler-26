@@ -68,9 +68,9 @@ const SequenceCard: React.FC<SequenceCardProps> = ({
         return `Create task: ${action.config.taskTitle}${
           action.config.delayDays ? ` (after ${action.config.delayDays} days)` : ""
         }`;
-      case "future-sms":
+      case "send-sms":
         return "Send SMS (Feature coming soon)";
-      case "future-call":
+      case "schedule-call":
         return "Schedule call (Feature coming soon)";
       default:
         return "Unknown action";

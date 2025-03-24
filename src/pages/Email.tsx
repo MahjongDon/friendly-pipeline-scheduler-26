@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Check, Plus, Search, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -102,7 +101,7 @@ const Email = () => {
     toast.success("Email deleted successfully");
   };
   
-  const handleSendEmail = (to: string, subject: string, body: string) => {
+  const handleSendEmail = (emailData: { to: string; subject: string; body: string }) => {
     // In a real app, this would send via an email API
     toast.success("Email sent successfully");
     setIsComposeOpen(false);
@@ -226,7 +225,6 @@ const Email = () => {
                 </div>
                 
                 <div className="flex h-[600px]">
-                  {/* Email List */}
                   <div className={cn(
                     "border-r w-full overflow-auto",
                     selectedEmail && !isMobile ? "w-1/3" : "w-full"
@@ -265,7 +263,6 @@ const Email = () => {
                     )}
                   </div>
                   
-                  {/* Email Detail */}
                   {selectedEmail && (!isMobile || !selectedEmail) && (
                     <div className={cn(
                       "p-6 overflow-auto",
@@ -324,7 +321,6 @@ const Email = () => {
             </div>
           </div>
           
-          {/* Compose Email Dialog */}
           <ComposeDialog
             isOpen={isComposeOpen}
             onOpenChange={setIsComposeOpen}
@@ -332,7 +328,6 @@ const Email = () => {
             templates={sampleTemplates}
           />
           
-          {/* Email Setup Dialog */}
           <EmailSetupDialog
             isOpen={isSetupOpen}
             onOpenChange={setIsSetupOpen}

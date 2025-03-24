@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
@@ -97,7 +96,6 @@ const Index = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const isMobile = useIsMobile();
 
-  // Auto-refresh dashboard data every 5 minutes
   useEffect(() => {
     const refreshInterval = setInterval(() => {
       refreshDashboard();
@@ -109,7 +107,6 @@ const Index = () => {
   const refreshDashboard = () => {
     setIsRefreshing(true);
     
-    // Simulate data refresh - in a real app this would fetch new data
     setTimeout(() => {
       setLastRefreshed(new Date());
       setIsRefreshing(false);
@@ -183,7 +180,6 @@ const Index = () => {
             </div>
           </div>
           
-          {/* Quick Action Buttons */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <Button variant="outline" className="flex-col h-20 space-y-1" onClick={() => navigate("/tasks")}>
               <ListChecks className="h-5 w-5" />
@@ -203,7 +199,6 @@ const Index = () => {
             </Button>
           </div>
           
-          {/* Summary Widgets */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <SummaryWidget 
               title="Active Leads" 
@@ -240,7 +235,6 @@ const Index = () => {
             />
           </div>
           
-          {/* Analytics Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <AnalyticsWidget 
               title="Task Completion" 
@@ -261,7 +255,6 @@ const Index = () => {
             />
           </div>
           
-          {/* Activity Widgets */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
             <TaskWidget 
               tasks={getPriorityTasks(tasks)}
@@ -282,7 +275,6 @@ const Index = () => {
             />
           </div>
           
-          {/* Activity Feed */}
           <div className="grid grid-cols-1 gap-6">
             <ActivityFeed 
               activities={sampleActivities}
@@ -296,3 +288,4 @@ const Index = () => {
 };
 
 export default Index;
+

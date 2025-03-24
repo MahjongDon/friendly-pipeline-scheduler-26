@@ -40,12 +40,21 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
   const [selectedService, setSelectedService] = useState<EmailService | null>(null);
   const [activeTab, setActiveTab] = useState("services");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
   const navigate = useNavigate();
   
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      setIsChecking(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsAuthenticated(!!session);
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+        setIsAuthenticated(false);
+      } finally {
+        setIsChecking(false);
+      }
     };
     
     if (isOpen) {
@@ -57,7 +66,7 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
     if (!isAuthenticated) {
       toast.error("You must be logged in to configure email services");
       onOpenChange(false);
-      navigate("/auth"); // Assuming you have an auth route
+      navigate("/auth"); // Now we have a proper auth route
       return;
     }
     
@@ -71,7 +80,7 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
     
     // Update the local state
     const updatedServices = services.map(s => 
-      s.name === service.name ? service : s
+      s.name === service.name ? { ...service, isConfigured: true } : s
     );
     
     setServices(updatedServices);
@@ -86,7 +95,25 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
     setActiveTab("services");
   };
 
+  const handleGoToLogin = () => {
+    onOpenChange(false);
+    navigate("/auth");
+  };
+
   const renderAuthWarning = () => {
+    if (isChecking) {
+      return (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
+            <div>
+              <h3 className="font-medium text-blue-800">Checking authentication status...</h3>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (isAuthenticated === false) {
       return (
         <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
@@ -100,10 +127,7 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
               <Button 
                 className="mt-2" 
                 size="sm" 
-                onClick={() => {
-                  onOpenChange(false);
-                  navigate("/auth");
-                }}
+                onClick={handleGoToLogin}
               >
                 <LogIn className="h-4 w-4 mr-2" />
                 Go to Login

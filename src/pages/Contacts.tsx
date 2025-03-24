@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { PlusCircle, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,45 +36,65 @@ const Contacts: React.FC = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  const handleApplyFilters = () => {
+  const handleApplyFilters = useCallback(() => {
     toast.success("Filters applied successfully");
-  };
+  }, []);
 
-  const handleEditContact = (contact: Contact) => {
+  const handleEditContact = useCallback((contact: Contact) => {
     setCurrentContact(contact);
     setIsAddContactDialogOpen(true);
     setIsProfileDialogOpen(false);
-  };
+  }, []);
 
-  const handleDeleteContact = (id: string) => {
+  const handleDeleteContact = useCallback((id: string) => {
     setContacts(prevContacts => prevContacts.filter(c => c.id !== id));
     toast.success("Contact deleted successfully");
-  };
+  }, []);
 
-  const handleViewProfile = (contact: Contact) => {
+  const handleViewProfile = useCallback((contact: Contact) => {
     setCurrentContact(contact);
     setActiveProfileTab("details");
     setIsProfileDialogOpen(true);
-  };
+  }, []);
 
-  const handleAddNote = (contact: Contact) => {
+  const handleAddNote = useCallback((contact: Contact) => {
     setCurrentContact(contact);
     setActiveProfileTab("notes");
     setIsProfileDialogOpen(true);
-  };
+  }, []);
 
-  const handleAddToCampaign = (contact: Contact) => {
+  const handleAddToCampaign = useCallback((contact: Contact) => {
     setCurrentContact(contact);
     setActiveProfileTab("campaigns");
     setIsProfileDialogOpen(true);
-  };
+  }, []);
 
-  const handleSaveContact = (formData: Partial<Contact>) => {
+  const handleProfileDialogClose = useCallback((open: boolean) => {
+    setIsProfileDialogOpen(open);
+    if (!open) {
+      // Small delay to ensure clean reset after animation
+      setTimeout(() => {
+        setCurrentContact(undefined);
+        setActiveProfileTab("details");
+      }, 300);
+    }
+  }, []);
+
+  const handleContactFormClose = useCallback((open: boolean) => {
+    setIsAddContactDialogOpen(open);
+    if (!open) {
+      setTimeout(() => setCurrentContact(undefined), 300);
+    }
+  }, []);
+
+  const handleSaveContact = useCallback((formData: Partial<Contact>) => {
     if (currentContact) {
       // Update existing contact
-      setContacts(contacts.map(c => 
-        c.id === currentContact.id ? { ...c, ...formData } as Contact : c
-      ));
+      setContacts(prevContacts => 
+        prevContacts.map(c => 
+          c.id === currentContact.id ? { ...c, ...formData } as Contact : c
+        )
+      );
       toast.success(`Contact ${formData.name} updated successfully`);
     } else {
       // Add new contact
@@ -87,11 +107,13 @@ const Contacts: React.FC = () => {
         status: formData.status || 'lead',
         tags: formData.tags || [],
       };
-      setContacts([...contacts, newContact]);
+      setContacts(prevContacts => [...prevContacts, newContact]);
       toast.success(`Contact ${formData.name} added successfully`);
     }
     setIsAddContactDialogOpen(false);
-  };
+    // Reset current contact after a short delay
+    setTimeout(() => setCurrentContact(undefined), 300);
+  }, [currentContact]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -163,14 +185,14 @@ const Contacts: React.FC = () => {
           
           <ContactForm
             isOpen={isAddContactDialogOpen}
-            onOpenChange={setIsAddContactDialogOpen}
+            onOpenChange={handleContactFormClose}
             initialData={currentContact}
             onSave={handleSaveContact}
           />
 
           <ContactProfileDialog
             open={isProfileDialogOpen}
-            onOpenChange={setIsProfileDialogOpen}
+            onOpenChange={handleProfileDialogClose}
             contact={currentContact || null}
             onEdit={handleEditContact}
             activeTab={activeProfileTab}

@@ -57,8 +57,16 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
     }
   }, [open, contact, activeTab]);
 
+  // Clear state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      // Clean up any state that should be reset when the dialog closes
+      // We don't reset notes here since we want to persist them
+    }
+  }, [open]);
+
   const handleAddNote = () => {
-    if (!newNote.trim()) return;
+    if (!newNote.trim() || !contact) return;
     
     const newNoteObj: ContactNote = {
       id: `note-${Date.now()}`,
@@ -72,7 +80,7 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
   };
 
   const handleAddToCampaign = () => {
-    if (!campaign.trim()) return;
+    if (!campaign.trim() || !contact) return;
     
     toast.success(`Added ${contact?.name} to campaign: ${campaign}`);
     setCampaign("");
@@ -82,6 +90,13 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
     setInternalActiveTab(value);
     if (setActiveTab) {
       setActiveTab(value);
+    }
+  };
+
+  const handleEditClick = () => {
+    if (contact) {
+      onEdit(contact);
+      onOpenChange(false);
     }
   };
 
@@ -243,7 +258,7 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button onClick={() => onEdit(contact)}>
+          <Button onClick={handleEditClick}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Contact
           </Button>

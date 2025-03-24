@@ -1,12 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmailService } from "@/types/emailAutomation";
+import { validateEmailConfig, testEmailConfig } from "@/utils/emailValidation";
 
 interface EmailServiceConfigProps {
   service: EmailService;
@@ -22,43 +22,60 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [apiKey, setApiKey] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [host, setHost] = useState("");
-  const [port, setPort] = useState("587");
+  const [host, setHost] = useState("smtp.gmail.com"); // Default for Gmail
+  const [port, setPort] = useState("587"); // Default TLS port
   const [fromEmail, setFromEmail] = useState("");
   const [fromName, setFromName] = useState("");
+  const [isTesting, setIsTesting] = useState(false);
   
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Load saved configuration from localStorage if available
+    const savedConfig = localStorage.getItem(`emailService_${service.name}`);
+    if (savedConfig) {
+      const config = JSON.parse(savedConfig);
+      if (service.name === "SMTP") {
+        setHost(config.host || "smtp.gmail.com");
+        setPort(config.port || "587");
+        setUsername(config.username || "");
+        setFromEmail(config.fromEmail || "");
+        setFromName(config.fromName || "");
+        // Don't load the password from localStorage for security
+      }
+    }
+  }, [service.name]);
+  
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
     let config: any = {};
-    let isValid = true;
-    let errorMessage = "";
+    let validationResult;
     
     switch (service.name) {
       case "SMTP":
-        if (!host || !username || !password || !port || !fromEmail) {
-          isValid = false;
-          errorMessage = "All SMTP fields are required";
-        } else {
-          config = { host, port, username, password, fromEmail, fromName };
+        config = { host, port, username, password, fromEmail, fromName };
+        validationResult = validateEmailConfig(config);
+        
+        if (!validationResult.isValid) {
+          validationResult.errors.forEach(error => toast.error(error));
+          return;
         }
+        
+        // Store in localStorage (except password)
+        const storageConfig = { ...config };
+        delete storageConfig.password;
+        localStorage.setItem(`emailService_${service.name}`, JSON.stringify(storageConfig));
         break;
       
       case "SendGrid":
       case "Mailchimp":
       case "Amazon SES":
         if (!apiKey || !fromEmail) {
-          isValid = false;
-          errorMessage = "API key and From Email are required";
-        } else {
-          config = { apiKey, fromEmail, fromName };
+          toast.error("API key and From Email are required");
+          return;
         }
+        config = { apiKey, fromEmail, fromName };
+        localStorage.setItem(`emailService_${service.name}`, JSON.stringify({ fromEmail, fromName }));
         break;
-    }
-    
-    if (!isValid) {
-      toast.error(errorMessage);
-      return;
     }
     
     const updatedService = {
@@ -67,6 +84,33 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
     };
     
     onSave(updatedService, config);
+    toast.success(`${service.name} configuration saved successfully`);
+  };
+  
+  const handleTest = async () => {
+    if (service.name === "SMTP") {
+      setIsTesting(true);
+      try {
+        const config = { host, port, username, password, fromEmail, fromName };
+        const validationResult = validateEmailConfig(config);
+        
+        if (!validationResult.isValid) {
+          validationResult.errors.forEach(error => toast.error(error));
+          return;
+        }
+        
+        const testResult = await testEmailConfig(config);
+        if (testResult.success) {
+          toast.success(testResult.message);
+        } else {
+          toast.error(testResult.message);
+        }
+      } catch (error) {
+        toast.error("Failed to test SMTP connection");
+      } finally {
+        setIsTesting(false);
+      }
+    }
   };
   
   return (
@@ -83,7 +127,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
                   <Label htmlFor="smtp-host">SMTP Host</Label>
                   <Input 
                     id="smtp-host" 
-                    placeholder="smtp.example.com" 
+                    placeholder="smtp.gmail.com" 
                     value={host}
                     onChange={(e) => setHost(e.target.value)}
                   />
@@ -100,21 +144,22 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="smtp-username">Username</Label>
+                <Label htmlFor="smtp-username">Username (Email)</Label>
                 <Input 
                   id="smtp-username" 
-                  placeholder="username@example.com" 
+                  type="email"
+                  placeholder="your.email@gmail.com" 
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="smtp-password">Password</Label>
+                <Label htmlFor="smtp-password">Password (App Password for Gmail)</Label>
                 <Input 
                   id="smtp-password" 
                   type="password" 
-                  placeholder="Your SMTP password" 
+                  placeholder="Your SMTP password or Gmail App Password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -125,6 +170,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
                   <Label htmlFor="from-email">From Email</Label>
                   <Input 
                     id="from-email" 
+                    type="email"
                     placeholder="noreply@yourcompany.com" 
                     value={fromEmail}
                     onChange={(e) => setFromEmail(e.target.value)}
@@ -185,6 +231,16 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
         </form>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
+        {service.name === "SMTP" && (
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleTest}
+            disabled={isTesting}
+          >
+            {isTesting ? "Testing..." : "Test Connection"}
+          </Button>
+        )}
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>

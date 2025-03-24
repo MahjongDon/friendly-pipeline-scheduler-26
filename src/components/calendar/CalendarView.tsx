@@ -16,14 +16,58 @@ import UpcomingEvents from "./UpcomingEvents";
 import DayView from "./DayView";
 import AlternateViewMessage from "./AlternateViewMessage";
 import CustomDay from "./CustomDay";
+import EventDialog from "./EventDialog";
+import { toast } from "sonner";
 
 // Import the specific types from react-day-picker
 import type { DayContentProps } from "react-day-picker";
+import { Event } from "./types";
 
 const CalendarView: React.FC = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [view, setView] = useState<"month" | "week" | "day">("month");
+  const [events, setEvents] = useState<Event[]>(sampleEvents);
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | undefined>(undefined);
+
+  const handleAddEvent = () => {
+    setEditingEvent(undefined);
+    setIsEventDialogOpen(true);
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    setIsEventDialogOpen(true);
+  };
+
+  const handleDeleteEvent = (id: string) => {
+    setEvents(events.filter(event => event.id !== id));
+    toast.success("Event deleted successfully");
+  };
+
+  const handleSaveEvent = (eventData: Omit<Event, "id">) => {
+    if (editingEvent) {
+      // Update existing event
+      setEvents(events.map(event => 
+        event.id === editingEvent.id ? { ...event, ...eventData } : event
+      ));
+      toast.success("Event updated successfully");
+    } else {
+      // Add new event
+      const newEvent: Event = {
+        id: `event-${Date.now()}`,
+        ...eventData
+      };
+      setEvents([...events, newEvent]);
+      toast.success("Event added successfully");
+    }
+  };
+
+  const handleDayClick = (day: Date) => {
+    setSelectedDate(day);
+    setView("day");
+  };
 
   return (
     <div className="flex flex-col sm:flex-row gap-6">
@@ -65,15 +109,20 @@ const CalendarView: React.FC = () => {
             month={date}
             showOutsideDays
             className="p-0"
+            onDayClick={handleDayClick}
             components={{
               Day: (props: DayContentProps) => (
-                <CustomDay dayProps={props} events={sampleEvents} />
+                <CustomDay dayProps={props} events={events} />
               ),
             }}
           />
         </div>
         
-        <UpcomingEvents events={sampleEvents} />
+        <UpcomingEvents 
+          events={events}
+          onAddEvent={handleAddEvent}
+          onEditEvent={handleEditEvent}
+        />
       </div>
 
       <div className="flex-1 bg-white border rounded-lg p-4">
@@ -92,7 +141,7 @@ const CalendarView: React.FC = () => {
                 <SelectItem value="month">Month</SelectItem>
               </SelectContent>
             </Select>
-            <Button size="sm">
+            <Button size="sm" onClick={handleAddEvent}>
               <Plus className="h-4 w-4 mr-1" /> Add Event
             </Button>
           </div>
@@ -101,13 +150,24 @@ const CalendarView: React.FC = () => {
         {view === "day" && selectedDate ? (
           <DayView 
             selectedDate={selectedDate} 
-            events={sampleEvents} 
+            events={events} 
             onSwitchView={setView} 
+            onAddEvent={handleAddEvent}
+            onEditEvent={handleEditEvent}
+            onDeleteEvent={handleDeleteEvent}
           />
         ) : (
           <AlternateViewMessage onSwitchView={setView} />
         )}
       </div>
+
+      <EventDialog 
+        isOpen={isEventDialogOpen}
+        onOpenChange={setIsEventDialogOpen}
+        selectedDate={selectedDate}
+        onSave={handleSaveEvent}
+        editingEvent={editingEvent}
+      />
     </div>
   );
 };

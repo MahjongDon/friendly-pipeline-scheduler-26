@@ -24,6 +24,9 @@ export interface AutomationTrigger {
     taskCategory?: string;
     dealStage?: string;
     scheduledDate?: Date;
+    scheduledTime?: string;
+    contactTags?: string[];
+    contactStatus?: string;
   };
 }
 
@@ -35,5 +38,8 @@ export interface AutomationAction {
     taskTitle?: string;
     taskDescription?: string;
     delayDays?: number;
+    delayHours?: number;
+    sendTime?: string;
+    specificDate?: Date;
   };
 }

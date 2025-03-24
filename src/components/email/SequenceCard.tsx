@@ -31,15 +31,20 @@ const SequenceCard: React.FC<SequenceCardProps> = ({
   const getTriggerDescription = (trigger: AutomationTrigger) => {
     switch (trigger.type) {
       case "contact-added":
-        return "When a new contact is added";
+        const statusText = trigger.config.contactStatus 
+          ? `with status ${trigger.config.contactStatus}` 
+          : "";
+        return `When a new contact is added ${statusText}`;
       case "deal-stage-changed":
-        return `When deal stage changes to ${trigger.config.dealStage}`;
+        return `When deal stage changes to ${trigger.config.dealStage || "any stage"}`;
       case "task-completed":
         return `When a ${trigger.config.taskCategory || "any"} task is completed`;
       case "scheduled":
-        return `At scheduled time: ${trigger.config.scheduledDate 
-          ? format(new Date(trigger.config.scheduledDate), "PPP")
-          : "Not set"}`;
+        const dateText = trigger.config.scheduledDate 
+          ? format(new Date(trigger.config.scheduledDate), "PPP") 
+          : "Not set";
+        const timeText = trigger.config.scheduledTime || "";
+        return `At scheduled time: ${dateText}${timeText ? ` at ${timeText}` : ""}`;
       default:
         return "Unknown trigger";
     }
@@ -48,9 +53,17 @@ const SequenceCard: React.FC<SequenceCardProps> = ({
   const getActionDescription = (action: AutomationAction) => {
     switch (action.type) {
       case "send-email":
-        return `Send email: ${sampleTemplates.find(t => t.id === action.config.templateId)?.name || "Unknown template"}${
-          action.config.delayDays ? ` (after ${action.config.delayDays} days)` : ""
-        }`;
+        const templateName = sampleTemplates.find(t => t.id === action.config.templateId)?.name || "Unknown template";
+        
+        if (action.config.specificDate) {
+          const dateText = format(new Date(action.config.specificDate), "PPP");
+          const timeText = action.config.sendTime || "";
+          return `Send email: ${templateName} on ${dateText}${timeText ? ` at ${timeText}` : ""}`;
+        } else {
+          return `Send email: ${templateName}${
+            action.config.delayDays ? ` (after ${action.config.delayDays} days)` : ""
+          }`;
+        }
       case "create-task":
         return `Create task: ${action.config.taskTitle}${
           action.config.delayDays ? ` (after ${action.config.delayDays} days)` : ""

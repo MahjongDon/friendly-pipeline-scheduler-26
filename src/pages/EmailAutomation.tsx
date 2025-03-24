@@ -349,6 +349,13 @@ const EmailAutomation: React.FC = () => {
   const [sequences, setSequences] = useState<AutomationSequence[]>(sampleSequences);
   const [isSequenceDialogOpen, setIsSequenceDialogOpen] = useState(false);
   const [currentSequence, setCurrentSequence] = useState<AutomationSequence | null>(null);
+  const [sequenceFormData, setSequenceFormData] = useState<Partial<AutomationSequence>>({
+    name: '',
+    description: '',
+    triggers: [],
+    actions: [],
+    isActive: true
+  });
   
   // Template handling
   const handleEditTemplate = (template: EmailTemplate) => {
@@ -399,6 +406,13 @@ const EmailAutomation: React.FC = () => {
   // Sequence handling
   const handleEditSequence = (sequence: AutomationSequence) => {
     setCurrentSequence(sequence);
+    setSequenceFormData({
+      name: sequence.name,
+      description: sequence.description,
+      triggers: sequence.triggers,
+      actions: sequence.actions,
+      isActive: sequence.isActive
+    });
     setIsSequenceDialogOpen(true);
   };
   
@@ -409,6 +423,24 @@ const EmailAutomation: React.FC = () => {
   
   const handleAddSequence = () => {
     setCurrentSequence(null);
+    setSequenceFormData({
+      name: '',
+      description: '',
+      triggers: [{
+        id: `trigger-${Date.now()}`,
+        type: 'contact-added',
+        config: {}
+      }],
+      actions: [{
+        id: `action-${Date.now()}`,
+        type: 'send-email',
+        config: {
+          templateId: templates[0]?.id,
+          delayDays: 0
+        }
+      }],
+      isActive: true
+    });
     setIsSequenceDialogOpen(true);
   };
   
@@ -419,15 +451,47 @@ const EmailAutomation: React.FC = () => {
     toast.success(`Sequence ${active ? 'activated' : 'deactivated'}`);
   };
   
+  const handleSequenceFormChange = (field: string, value: any) => {
+    setSequenceFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
   const handleSaveSequence = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real implementation, we would collect all form data here
+    
+    if (!sequenceFormData.name) {
+      toast.error("Sequence name is required");
+      return;
+    }
     
     if (currentSequence) {
-      // Pretend to update the sequence
+      // Update existing sequence
+      setSequences(sequences.map(s => 
+        s.id === currentSequence.id ? {
+          ...currentSequence,
+          name: sequenceFormData.name || currentSequence.name,
+          description: sequenceFormData.description || currentSequence.description,
+          triggers: sequenceFormData.triggers || currentSequence.triggers,
+          actions: sequenceFormData.actions || currentSequence.actions,
+          isActive: sequenceFormData.isActive !== undefined ? sequenceFormData.isActive : currentSequence.isActive
+        } : s
+      ));
       toast.success("Sequence updated successfully");
     } else {
-      // Pretend to create a new sequence
+      // Create new sequence
+      const newSequence: AutomationSequence = {
+        id: `sequence-${Date.now()}`,
+        name: sequenceFormData.name || 'New Sequence',
+        description: sequenceFormData.description || '',
+        triggers: sequenceFormData.triggers || [],
+        actions: sequenceFormData.actions || [],
+        isActive: sequenceFormData.isActive !== undefined ? sequenceFormData.isActive : true,
+        createdAt: new Date()
+      };
+      
+      setSequences([...sequences, newSequence]);
       toast.success("Sequence created successfully");
     }
     
@@ -623,7 +687,8 @@ const EmailAutomation: React.FC = () => {
                     </Label>
                     <Input
                       id="sequence-name"
-                      defaultValue={currentSequence?.name}
+                      value={sequenceFormData.name || ''}
+                      onChange={(e) => handleSequenceFormChange('name', e.target.value)}
                       required
                     />
                   </div>
@@ -633,7 +698,8 @@ const EmailAutomation: React.FC = () => {
                     </Label>
                     <Textarea
                       id="sequence-description"
-                      defaultValue={currentSequence?.description}
+                      value={sequenceFormData.description || ''}
+                      onChange={(e) => handleSequenceFormChange('description', e.target.value)}
                       rows={2}
                     />
                   </div>
@@ -646,15 +712,27 @@ const EmailAutomation: React.FC = () => {
                     
                     {/* Trigger selection would go here - simplified for this example */}
                     <div className="bg-muted p-4 rounded-md">
-                      <p className="text-sm">
-                        You would configure trigger conditions here such as:
-                      </p>
-                      <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-                        <li>When a contact is added</li>
-                        <li>When a deal moves to a specific stage</li>
-                        <li>When a task is completed</li>
-                        <li>At a scheduled time and date</li>
-                      </ul>
+                      <Select 
+                        value="contact-added"
+                        onValueChange={(value) => {
+                          const newTriggers = [{
+                            id: `trigger-${Date.now()}`,
+                            type: value as any,
+                            config: {}
+                          }];
+                          handleSequenceFormChange('triggers', newTriggers);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a trigger" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="contact-added">When a contact is added</SelectItem>
+                          <SelectItem value="deal-stage-changed">When a deal moves to a specific stage</SelectItem>
+                          <SelectItem value="task-completed">When a task is completed</SelectItem>
+                          <SelectItem value="scheduled">At a scheduled time</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   
@@ -666,15 +744,94 @@ const EmailAutomation: React.FC = () => {
                     
                     {/* Action configuration would go here - simplified for this example */}
                     <div className="bg-muted p-4 rounded-md">
-                      <p className="text-sm">
-                        You would configure actions here such as:
-                      </p>
-                      <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-                        <li>Send email from a template</li>
-                        <li>Create a task with specific details</li>
-                        <li>Add a delay between actions</li>
-                        <li>(Coming soon) Send SMS or schedule calls</li>
-                      </ul>
+                      <div className="grid gap-4">
+                        <Select 
+                          defaultValue="send-email"
+                          onValueChange={(value) => {
+                            const newActions = [{
+                              id: `action-${Date.now()}`,
+                              type: value as any,
+                              config: {
+                                templateId: templates[0]?.id,
+                                delayDays: 0
+                              }
+                            }];
+                            handleSequenceFormChange('actions', newActions);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an action" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="send-email">Send email from a template</SelectItem>
+                            <SelectItem value="create-task">Create a task</SelectItem>
+                            <SelectItem value="future-sms">(Coming soon) Send SMS</SelectItem>
+                            <SelectItem value="future-call">(Coming soon) Schedule call</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        {sequenceFormData.actions?.[0]?.type === 'send-email' && (
+                          <div className="grid grid-cols-4 gap-4">
+                            <Label htmlFor="template-select" className="text-right">
+                              Email Template
+                            </Label>
+                            <div className="col-span-3">
+                              <Select 
+                                defaultValue={templates[0]?.id} 
+                                onValueChange={(value) => {
+                                  const updatedActions = [...(sequenceFormData.actions || [])];
+                                  if (updatedActions[0]) {
+                                    updatedActions[0].config = {
+                                      ...updatedActions[0].config,
+                                      templateId: value
+                                    };
+                                    handleSequenceFormChange('actions', updatedActions);
+                                  }
+                                }}
+                              >
+                                <SelectTrigger id="template-select">
+                                  <SelectValue placeholder="Select a template" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {templates.map(template => (
+                                    <SelectItem key={template.id} value={template.id}>
+                                      {template.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {templates.length === 0 && (
+                                <p className="text-xs text-amber-600 mt-1">
+                                  No templates available. Please create a template first.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="grid grid-cols-4 gap-4">
+                          <Label htmlFor="delay-days" className="text-right">
+                            Delay (Days)
+                          </Label>
+                          <Input
+                            id="delay-days"
+                            type="number"
+                            min="0"
+                            className="col-span-3"
+                            defaultValue="0"
+                            onChange={(e) => {
+                              const updatedActions = [...(sequenceFormData.actions || [])];
+                              if (updatedActions[0]) {
+                                updatedActions[0].config = {
+                                  ...updatedActions[0].config,
+                                  delayDays: parseInt(e.target.value) || 0
+                                };
+                                handleSequenceFormChange('actions', updatedActions);
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -84,10 +84,22 @@ export const saveEmailConfig = async (config: {
   fromName?: string;
 }) => {
   try {
+    // Check if user is authenticated
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return {
+        success: false,
+        message: "Authentication required to save SMTP configuration"
+      };
+    }
+    
+    const userId = session.user.id;
+    
     // First check if a config already exists
     const { data: existingConfig } = await supabase
       .from('smtp_configs')
       .select('id')
+      .eq('user_id', userId)
       .limit(1);
     
     if (existingConfig && existingConfig.length > 0) {
@@ -112,6 +124,7 @@ export const saveEmailConfig = async (config: {
       const { data, error } = await supabase
         .from('smtp_configs')
         .insert({
+          user_id: userId, // Add the user_id field
           host: config.host,
           port: config.port,
           username: config.username,
@@ -135,9 +148,21 @@ export const saveEmailConfig = async (config: {
 
 export const getEmailConfig = async () => {
   try {
+    // Check if user is authenticated
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return {
+        success: false,
+        message: "Authentication required to get SMTP configuration"
+      };
+    }
+    
+    const userId = session.user.id;
+    
     const { data, error } = await supabase
       .from('smtp_configs')
       .select('*')
+      .eq('user_id', userId)
       .limit(1)
       .single();
     

@@ -62,6 +62,8 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
   });
   
   const handleApplyTemplate = (templateId: string) => {
+    if (!templates) return;
+    
     const template = templates.find(t => t.id === templateId);
     if (template) {
       form.setValue("subject", template.subject);
@@ -77,6 +79,8 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
       await onSend(data);
       form.reset();
       setSelectedTemplate(null);
+    } catch (error) {
+      console.error("Error sending email:", error);
     } finally {
       setIsSending(false);
     }
@@ -204,6 +208,12 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                   </p>
                 </div>
               ))}
+              
+              {!templates || templates.length === 0 && (
+                <div className="col-span-2 text-center p-6 border rounded-md">
+                  <p className="text-muted-foreground">No email templates available</p>
+                </div>
+              )}
             </div>
             
             <DialogFooter className="flex justify-between">

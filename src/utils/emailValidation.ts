@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const validateEmailConfig = (config: {
@@ -286,7 +285,7 @@ export const getEmailConfig = async () => {
   }
 };
 
-// New function to send an email using the Supabase function
+// Updated function to send an email using the Supabase function
 export const sendEmail = async (emailData: {
   to: string;
   subject: string;
@@ -299,6 +298,7 @@ export const sendEmail = async (emailData: {
     const configResult = await getEmailConfig();
     
     if (!configResult.success) {
+      console.error("Failed to get email configuration:", configResult.message);
       return {
         success: false,
         message: "Failed to get email configuration: " + configResult.message
@@ -311,30 +311,47 @@ export const sendEmail = async (emailData: {
     const from = emailData.from || config.fromEmail;
     const fromName = emailData.fromName || config.fromName;
     
-    // Call our send-email Supabase Edge Function
-    const { data, error } = await supabase.functions.invoke('send-email', {
-      body: {
-        to: emailData.to,
-        subject: emailData.subject,
-        body: emailData.body,
-        from,
-        fromName
-      }
-    });
+    console.log("Sending email to:", emailData.to);
     
-    if (error) {
-      console.error("Error sending email:", error);
+    // Call our send-email Supabase Edge Function
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: emailData.to,
+          subject: emailData.subject,
+          body: emailData.body,
+          from,
+          fromName
+        }
+      });
+      
+      if (error) {
+        console.error("Error sending email:", error);
+        return {
+          success: false,
+          message: error.message || "Failed to send email",
+          error
+        };
+      }
+      
+      if (!data) {
+        console.error("No response from email function");
+        return { 
+          success: false, 
+          message: "No response from email function"
+        };
+      }
+      
+      return data;
+    } catch (invokeError) {
+      console.error("Exception invoking send-email function:", invokeError);
       return {
         success: false,
-        message: error.message || "Failed to send email",
-        error
+        message: invokeError instanceof Error ? 
+          `Failed to send a request to the Edge Function: ${invokeError.message}` : 
+          "Failed to send a request to the Edge Function"
       };
     }
-    
-    return data || { 
-      success: false, 
-      message: "No response from email function"
-    };
   } catch (error) {
     console.error("Exception sending email:", error);
     return {

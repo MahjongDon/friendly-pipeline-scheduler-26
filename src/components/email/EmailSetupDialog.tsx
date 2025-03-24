@@ -37,36 +37,56 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
   onOpenChange,
   emailServices,
 }) => {
-  const [services, setServices] = useState<EmailService[]>(emailServices);
+  const [services, setServices] = useState<EmailService[]>([]);
   const [selectedService, setSelectedService] = useState<EmailService | null>(null);
   const [activeTab, setActiveTab] = useState("services");
   const [hasConfiguredEmail, setHasConfiguredEmail] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   
+  // Initialize services when component mounts or emailServices changes
+  useEffect(() => {
+    // Only update services if we have emailServices and they're different
+    if (emailServices && emailServices.length > 0 && 
+        JSON.stringify(emailServices) !== JSON.stringify(services)) {
+      setServices(emailServices);
+    }
+  }, [emailServices]);
+  
   // Check if user has already configured email service
   useEffect(() => {
-    if (user && isOpen) {
-      const checkEmailConfig = async () => {
+    const checkEmailConfig = async () => {
+      if (!user || !isOpen) return;
+      
+      setIsLoading(true);
+      try {
         const result = await getEmailConfig();
         if (result.success && result.config) {
           setHasConfiguredEmail(true);
           
           // Update services to mark the configured one
-          const updatedServices = services.map(service => {
-            if (service.name === "SMTP") {
-              return { ...service, isConfigured: true };
-            }
-            return service;
-          });
-          
-          setServices(updatedServices);
+          setServices(prevServices => 
+            prevServices.map(service => {
+              // Only mark SMTP as configured since that's what we support now
+              if (service.name === "SMTP") {
+                return { ...service, isConfigured: true };
+              }
+              return service;
+            })
+          );
         }
-      };
-      
+      } catch (error) {
+        console.error("Error checking email config:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (isOpen) {
       checkEmailConfig();
     }
-  }, [user, isOpen, services]);
+  }, [user, isOpen]);
   
   const handleConfigureService = (service: EmailService) => {
     if (!user) {
@@ -81,15 +101,13 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
   };
   
   const handleSaveConfiguration = (service: EmailService, config: any) => {
-    // Here you would normally save the configuration to your backend
-    console.log("Configuration saved for", service.name, config);
-    
     // Update the local state
-    const updatedServices = services.map(s => 
-      s.name === service.name ? { ...service, isConfigured: true } : s
+    setServices(prevServices => 
+      prevServices.map(s => 
+        s.name === service.name ? { ...s, isConfigured: true } : s
+      )
     );
     
-    setServices(updatedServices);
     setSelectedService(null);
     setActiveTab("services");
     setHasConfiguredEmail(true);
@@ -204,36 +222,42 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
               <h3 className="text-lg font-medium mb-4">Available Email Services</h3>
               
               <div className="grid gap-4 sm:grid-cols-2">
-                {services.map((service) => (
-                  <Card key={service.name}>
-                    <CardHeader>
-                      <CardTitle>{service.name}</CardTitle>
-                      <CardDescription>{service.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-sm">
-                        Status: <span className={service.isConfigured ? "text-green-600 flex items-center" : "text-amber-600"}>
-                          {service.isConfigured ? (
-                            <>
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Connected
-                            </>
-                          ) : "Not configured"}
-                        </span>
-                      </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button 
-                        variant={service.isConfigured ? "outline" : "default"} 
-                        className="w-full"
-                        onClick={() => handleConfigureService(service)}
-                        disabled={!user}
-                      >
-                        {service.isConfigured ? "Edit Configuration" : `Configure ${service.name}`}
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+                {services && services.length > 0 ? (
+                  services.map((service) => (
+                    <Card key={service.name}>
+                      <CardHeader>
+                        <CardTitle>{service.name}</CardTitle>
+                        <CardDescription>{service.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-sm">
+                          Status: <span className={service.isConfigured ? "text-green-600 flex items-center" : "text-amber-600"}>
+                            {service.isConfigured ? (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Connected
+                              </>
+                            ) : "Not configured"}
+                          </span>
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        <Button 
+                          variant={service.isConfigured ? "outline" : "default"} 
+                          className="w-full"
+                          onClick={() => handleConfigureService(service)}
+                          disabled={!user}
+                        >
+                          {service.isConfigured ? "Edit Configuration" : `Configure ${service.name}`}
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center p-4">
+                    <p className="text-muted-foreground">Loading available email services...</p>
+                  </div>
+                )}
               </div>
               
               {!hasConfiguredEmail && (

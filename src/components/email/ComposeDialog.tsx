@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { sampleTemplates } from "@/data/sampleEmailData";
+import { EmailTemplate } from "@/types/emailAutomation";
 
 interface ComposeDialogProps {
   isOpen: boolean;
@@ -31,12 +31,14 @@ interface ComposeDialogProps {
     subject: string;
     body: string;
   }) => void;
+  templates?: EmailTemplate[];
 }
 
 const ComposeDialog: React.FC<ComposeDialogProps> = ({
   isOpen,
   onOpenChange,
   onSend,
+  templates = [],
 }) => {
   const [to, setTo] = useState<string>("");
   const [subject, setSubject] = useState<string>("");
@@ -67,7 +69,7 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
   };
 
   const handleTemplateSelect = (templateId: string) => {
-    const template = sampleTemplates.find((t) => t.id === templateId);
+    const template = templates.find((t) => t.id === templateId);
     if (template) {
       setSubject(template.subject);
       setBody(template.body);
@@ -100,14 +102,14 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                 Use Template:
               </Label>
               <Select
-                disabled={sampleTemplates.length === 0}
+                disabled={templates.length === 0}
                 onValueChange={handleTemplateSelect}
               >
                 <SelectTrigger id="use-template" className="flex-1">
                   <SelectValue placeholder="Select a template" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sampleTemplates.map((template) => (
+                  {templates.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
                       {template.name}
                     </SelectItem>

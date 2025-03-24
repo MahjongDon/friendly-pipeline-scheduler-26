@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
@@ -50,16 +51,16 @@ const sampleEvents = [
   {
     id: "event-1",
     title: "Team Meeting",
-    start: new Date(new Date().setHours(10, 0, 0, 0)),
-    end: new Date(new Date().setHours(11, 0, 0, 0)),
+    start: new Date(new Date().getTime()),
+    end: new Date(new Date().getTime()),
     description: "Weekly team sync meeting",
     location: "Conference Room A"
   },
   {
     id: "event-2",
     title: "Product Demo",
-    start: new Date(new Date().setHours(14, 0, 0, 0)),
-    end: new Date(new Date().setHours(15, 30, 0, 0)),
+    start: new Date(new Date().getTime()),
+    end: new Date(new Date().getTime()),
     description: "Demo of new features for Acme Corp",
     location: "Virtual Meeting"
   },
@@ -74,18 +75,39 @@ const sampleEvents = [
   {
     id: "event-4",
     title: "Marketing Review",
-    start: new Date(new Date().setDate(new Date().getDate() + 2).setHours(13, 0, 0, 0)),
-    end: new Date(new Date().setDate(new Date().getDate() + 2).setHours(14, 0, 0, 0)),
+    start: new Date(new Date().setDate(new Date().getDate() + 2)),
+    end: new Date(new Date().setDate(new Date().getDate() + 2)),
     description: "Review Q3 marketing campaign results"
   },
   {
     id: "event-5",
     title: "Strategy Planning",
-    start: new Date(new Date().setDate(new Date().getDate() + 3).setHours(9, 0, 0, 0)),
-    end: new Date(new Date().setDate(new Date().getDate() + 3).setHours(12, 0, 0, 0)),
+    start: new Date(new Date().setDate(new Date().getDate() + 3)),
+    end: new Date(new Date().setDate(new Date().getDate() + 3)),
     description: "Quarterly strategy planning session"
   }
 ];
+
+// Initialize dates with proper hours
+(() => {
+  const today = new Date();
+  
+  // Event 1: Set to 10:00 AM - 11:00 AM today
+  sampleEvents[0].start.setHours(10, 0, 0, 0);
+  sampleEvents[0].end.setHours(11, 0, 0, 0);
+  
+  // Event 2: Set to 2:00 PM - 3:30 PM today
+  sampleEvents[1].start.setHours(14, 0, 0, 0);
+  sampleEvents[1].end.setHours(15, 30, 0, 0);
+  
+  // Event 4: Set to 1:00 PM - 2:00 PM on day+2
+  sampleEvents[3].start.setHours(13, 0, 0, 0);
+  sampleEvents[3].end.setHours(14, 0, 0, 0);
+  
+  // Event 5: Set to 9:00 AM - 12:00 PM on day+3
+  sampleEvents[4].start.setHours(9, 0, 0, 0);
+  sampleEvents[4].end.setHours(12, 0, 0, 0);
+})();
 
 const Index = () => {
   const navigate = useNavigate();
@@ -288,4 +310,3 @@ const Index = () => {
 };
 
 export default Index;
-

@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { PlusCircle, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,16 +13,17 @@ import FilterDialog from "@/components/contacts/FilterDialog";
 import ContactForm from "@/components/contacts/ContactForm";
 import ContactProfileDialog from "@/components/contacts/ContactProfileDialog";
 import { Contact } from "@/types/contact";
-import { sampleContacts } from "@/data/sampleContacts";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const Contacts: React.FC = () => {
   const { user } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const isMobile = useIsMobile();
-  const [contacts, setContacts] = useState<Contact[]>(sampleContacts);
+  const queryClient = useQueryClient();
   
   // Dialog states
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
@@ -30,6 +31,97 @@ const Contacts: React.FC = () => {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [currentContact, setCurrentContact] = useState<Contact | undefined>(undefined);
   const [activeProfileTab, setActiveProfileTab] = useState("details");
+
+  // Fetch contacts from Supabase
+  const { data: contacts = [], isLoading } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        toast.error(`Error fetching contacts: ${error.message}`);
+        return [];
+      }
+      
+      return data as Contact[];
+    },
+    enabled: !!user,
+  });
+
+  // Add contact mutation
+  const addContactMutation = useMutation({
+    mutationFn: async (newContact: Omit<Contact, 'id'>) => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .insert([{ ...newContact, user_id: user?.id }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Contact added successfully");
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Error adding contact: ${error.message}`);
+    }
+  });
+
+  // Update contact mutation
+  const updateContactMutation = useMutation({
+    mutationFn: async (updatedContact: Contact) => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .update({
+          name: updatedContact.name,
+          company: updatedContact.company,
+          email: updatedContact.email,
+          phone: updatedContact.phone,
+          status: updatedContact.status,
+          tags: updatedContact.tags,
+        })
+        .eq('id', updatedContact.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Contact updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Error updating contact: ${error.message}`);
+    }
+  });
+
+  // Delete contact mutation
+  const deleteContactMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('contacts')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      toast.success("Contact deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Error deleting contact: ${error.message}`);
+    }
+  });
 
   // If not authenticated, redirect to auth page
   if (!user) {
@@ -47,9 +139,8 @@ const Contacts: React.FC = () => {
   }, []);
 
   const handleDeleteContact = useCallback((id: string) => {
-    setContacts(prevContacts => prevContacts.filter(c => c.id !== id));
-    toast.success("Contact deleted successfully");
-  }, []);
+    deleteContactMutation.mutate(id);
+  }, [deleteContactMutation]);
 
   const handleViewProfile = useCallback((contact: Contact) => {
     setCurrentContact(contact);
@@ -90,30 +181,25 @@ const Contacts: React.FC = () => {
   const handleSaveContact = useCallback((formData: Partial<Contact>) => {
     if (currentContact) {
       // Update existing contact
-      setContacts(prevContacts => 
-        prevContacts.map(c => 
-          c.id === currentContact.id ? { ...c, ...formData } as Contact : c
-        )
-      );
-      toast.success(`Contact ${formData.name} updated successfully`);
+      updateContactMutation.mutate({ 
+        ...currentContact, 
+        ...formData 
+      } as Contact);
     } else {
       // Add new contact
-      const newContact: Contact = {
-        id: `contact-${Date.now()}`,
+      addContactMutation.mutate({
         name: formData.name || '',
         company: formData.company || '',
         email: formData.email || '',
         phone: formData.phone || '',
         status: formData.status || 'lead',
         tags: formData.tags || [],
-      };
-      setContacts(prevContacts => [...prevContacts, newContact]);
-      toast.success(`Contact ${formData.name} added successfully`);
+      });
     }
     setIsAddContactDialogOpen(false);
     // Reset current contact after a short delay
     setTimeout(() => setCurrentContact(undefined), 300);
-  }, [currentContact]);
+  }, [currentContact, updateContactMutation, addContactMutation]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -167,15 +253,21 @@ const Contacts: React.FC = () => {
             </div>
           </div>
           
-          <ContactsList 
-            contacts={contacts}
-            searchQuery={searchQuery}
-            onEditContact={handleEditContact}
-            onDeleteContact={handleDeleteContact}
-            onViewProfile={handleViewProfile}
-            onAddNote={handleAddNote}
-            onAddToCampaign={handleAddToCampaign}
-          />
+          {isLoading ? (
+            <div className="bg-white border rounded-lg p-8 text-center">
+              <p className="text-muted-foreground">Loading contacts...</p>
+            </div>
+          ) : (
+            <ContactsList 
+              contacts={contacts}
+              searchQuery={searchQuery}
+              onEditContact={handleEditContact}
+              onDeleteContact={handleDeleteContact}
+              onViewProfile={handleViewProfile}
+              onAddNote={handleAddNote}
+              onAddToCampaign={handleAddToCampaign}
+            />
+          )}
           
           <FilterDialog 
             isOpen={isFilterDialogOpen}

@@ -11,11 +11,15 @@ import { Label } from "@/components/ui/label";
 import { Mail, Phone, Building2, CalendarClock, Tag, Edit, Plus } from "lucide-react";
 import { Contact } from "@/types/contact";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ContactNote {
   id: string;
   text: string;
   date: string;
+  contact_id: string;
 }
 
 interface ContactProfileDialogProps {
@@ -35,20 +39,68 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
   activeTab = "details",
   setActiveTab
 }) => {
+  const { user } = useAuth();
   const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
-  const [notes, setNotes] = useState<ContactNote[]>([]);
   const [newNote, setNewNote] = useState("");
   const [campaign, setCampaign] = useState("");
+  const queryClient = useQueryClient();
   
+  // Fetch contact notes from Supabase
+  const { data: notes = [] } = useQuery({
+    queryKey: ['contactNotes', contact?.id],
+    queryFn: async () => {
+      if (!contact || !user) return [];
+      
+      const { data, error } = await supabase
+        .from('contact_notes')
+        .select('*')
+        .eq('contact_id', contact.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        toast.error(`Error fetching notes: ${error.message}`);
+        return [];
+      }
+      
+      return data as ContactNote[];
+    },
+    enabled: !!contact && !!user && open,
+  });
+
+  // Add note mutation
+  const addNoteMutation = useMutation({
+    mutationFn: async (text: string) => {
+      if (!contact || !user) throw new Error("Missing contact or user");
+      
+      const { data, error } = await supabase
+        .from('contact_notes')
+        .insert([{
+          contact_id: contact.id,
+          user_id: user.id,
+          text
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Note added successfully");
+      queryClient.invalidateQueries({ queryKey: ['contactNotes', contact?.id] });
+      setNewNote("");
+    },
+    onError: (error: any) => {
+      toast.error(`Error adding note: ${error.message}`);
+    }
+  });
+
   // Reset state when dialog opens with a new contact or tab changes
   useEffect(() => {
     if (open && contact) {
       // Reset the new note input and campaign input when the dialog opens
       setNewNote("");
       setCampaign("");
-      
-      // Keep the notes state as is, as we want to persist notes between dialog openings
-      // In a real app, you would fetch notes from a database here
     }
 
     // Set internal tab state based on prop
@@ -61,22 +113,12 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
   useEffect(() => {
     if (!open) {
       // Clean up any state that should be reset when the dialog closes
-      // We don't reset notes here since we want to persist them
     }
   }, [open]);
 
   const handleAddNote = () => {
     if (!newNote.trim() || !contact) return;
-    
-    const newNoteObj: ContactNote = {
-      id: `note-${Date.now()}`,
-      text: newNote,
-      date: new Date().toISOString(),
-    };
-    
-    setNotes([...notes, newNoteObj]);
-    setNewNote("");
-    toast.success("Note added successfully");
+    addNoteMutation.mutate(newNote);
   };
 
   const handleAddToCampaign = () => {
@@ -199,7 +241,7 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
                       <div key={note.id} className="border p-3 rounded-md">
                         <p>{note.text}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(note.date).toLocaleString()}
+                          {new Date(note.date || note.created_at).toLocaleString()}
                         </p>
                       </div>
                     ))}
@@ -218,11 +260,11 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
                   />
                   <Button 
                     onClick={handleAddNote} 
-                    disabled={!newNote.trim()}
+                    disabled={!newNote.trim() || addNoteMutation.isPending}
                     className="mt-2"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Note
+                    {addNoteMutation.isPending ? "Adding..." : "Add Note"}
                   </Button>
                 </div>
               </CardContent>

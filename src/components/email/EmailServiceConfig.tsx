@@ -13,6 +13,7 @@ import {
   getEmailConfig 
 } from "@/utils/emailValidation";
 import { useAuth } from "@/contexts/AuthContext";
+import { AlertCircle } from "lucide-react";
 
 interface EmailServiceConfigProps {
   service: EmailService;
@@ -35,6 +36,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [isTesting, setIsTesting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [configError, setConfigError] = useState<string | null>(null);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -45,31 +47,42 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
       return;
     }
     
-    setIsLoading(false);
-    
     // Load existing configuration from Supabase if available
     if (service.name === "SMTP") {
       const loadConfig = async () => {
-        const result = await getEmailConfig();
-        if (result.success && result.config) {
-          const config = result.config;
-          setHost(config.host || "smtp.gmail.com");
-          setPort(config.port || "587");
-          setUsername(config.username || "");
-          setFromEmail(config.fromEmail || "");
-          setFromName(config.fromName || "");
-          // We don't set the password here for security reasons
-          toast.info("Loaded existing SMTP configuration");
+        setIsLoading(true);
+        setConfigError(null);
+        
+        try {
+          const result = await getEmailConfig();
+          if (result.success && result.config) {
+            const config = result.config;
+            setHost(config.host || "smtp.gmail.com");
+            setPort(config.port || "587");
+            setUsername(config.username || "");
+            setFromEmail(config.fromEmail || "");
+            setFromName(config.fromName || "");
+            // We don't set the password here for security reasons
+            toast.info("Loaded existing SMTP configuration");
+          }
+        } catch (error) {
+          console.error("Error loading SMTP config:", error);
+          setConfigError("Failed to load existing configuration");
+        } finally {
+          setIsLoading(false);
         }
       };
       
       loadConfig();
+    } else {
+      setIsLoading(false);
     }
   }, [service.name, onCancel, user]);
   
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    setConfigError(null);
     
     let config: any = {};
     let validationResult;
@@ -82,6 +95,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           
           if (!validationResult.isValid) {
             validationResult.errors.forEach(error => toast.error(error));
+            setConfigError("Please fix the validation errors");
             setIsSaving(false);
             return;
           }
@@ -90,6 +104,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           const saveResult = await saveEmailConfig(config);
           if (!saveResult.success) {
             toast.error(saveResult.message || "Failed to save configuration");
+            setConfigError(saveResult.message || "Failed to save configuration");
             setIsSaving(false);
             return;
           }
@@ -101,6 +116,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
         case "Amazon SES":
           if (!apiKey || !fromEmail) {
             toast.error("API key and From Email are required");
+            setConfigError("API key and From Email are required");
             setIsSaving(false);
             return;
           }
@@ -119,6 +135,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
     } catch (error) {
       console.error("Error saving config:", error);
       toast.error("Failed to save configuration");
+      setConfigError("Failed to save configuration: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setIsSaving(false);
     }
@@ -127,24 +144,31 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const handleTest = async () => {
     if (service.name === "SMTP") {
       setIsTesting(true);
+      setConfigError(null);
+      
       try {
         const config = { host, port, username, password, fromEmail, fromName };
         const validationResult = validateEmailConfig(config);
         
         if (!validationResult.isValid) {
           validationResult.errors.forEach(error => toast.error(error));
+          setConfigError("Please fix the validation errors");
           return;
         }
         
+        toast.info("Testing SMTP connection, please wait...");
         const testResult = await testEmailConfig(config);
+        
         if (testResult.success) {
           toast.success(testResult.message || "SMTP connection test successful");
         } else {
           toast.error(testResult.message || "Failed to test SMTP connection");
+          setConfigError(testResult.message || "Failed to test SMTP connection");
         }
       } catch (error) {
         toast.error("Failed to test SMTP connection");
         console.error("SMTP test error:", error);
+        setConfigError("Failed to test SMTP connection: " + (error instanceof Error ? error.message : "Unknown error"));
       } finally {
         setIsTesting(false);
       }
@@ -169,6 +193,32 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
         <CardTitle>Configure {service.name}</CardTitle>
       </CardHeader>
       <CardContent>
+        {configError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-start">
+            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2" />
+            <div>
+              <p className="text-sm">{configError}</p>
+            </div>
+          </div>
+        )}
+        
+        {service.name === "SMTP" && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800">
+            <h4 className="font-medium mb-1">Gmail SMTP Setup Help</h4>
+            <p className="text-sm mb-2">
+              If you're using Gmail, you'll need to use an App Password instead of your regular password.
+            </p>
+            <ol className="text-sm list-decimal pl-5 space-y-1">
+              <li>Enable 2-Step Verification on your Google account</li>
+              <li>Go to your Google Account settings</li>
+              <li>Select "Security"</li>
+              <li>Under "Signing in to Google," select "App passwords"</li>
+              <li>Generate a new app password for "Mail"</li>
+              <li>Use that 16-character password here</li>
+            </ol>
+          </div>
+        )}
+        
         <form id="email-service-form" onSubmit={handleSave}>
           {service.name === "SMTP" ? (
             <div className="space-y-4">

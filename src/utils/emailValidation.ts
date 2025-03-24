@@ -24,17 +24,23 @@ export const validateEmailConfig = (config: {
   
   // Username/email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(config.username)) {
+  if (!config.username) {
+    errors.push("Username is required");
+  } else if (!emailRegex.test(config.username)) {
     errors.push("Username must be a valid email address");
   }
   
   // Password validation
-  if (!config.password || config.password.length < 8) {
+  if (!config.password) {
+    errors.push("Password is required");
+  } else if (config.password.length < 8) {
     errors.push("Password must be at least 8 characters long");
   }
   
   // From email validation
-  if (!emailRegex.test(config.fromEmail)) {
+  if (!config.fromEmail) {
+    errors.push("From Email is required");
+  } else if (!emailRegex.test(config.fromEmail)) {
     errors.push("From Email must be a valid email address");
   }
   
@@ -53,6 +59,11 @@ export const testEmailConfig = async (config: {
   fromName?: string;
 }) => {
   try {
+    console.log("Testing SMTP configuration:", {
+      ...config, 
+      password: "********" // Mask password in logs
+    });
+    
     const { data, error } = await supabase.functions.invoke('test-smtp', {
       body: config
     });
@@ -124,7 +135,7 @@ export const saveEmailConfig = async (config: {
       const { data, error } = await supabase
         .from('smtp_configs')
         .insert({
-          user_id: userId, // Add the user_id field
+          user_id: userId,
           host: config.host,
           port: config.port,
           username: config.username,
@@ -164,14 +175,15 @@ export const getEmailConfig = async () => {
       .select('*')
       .eq('user_id', userId)
       .limit(1)
-      .single();
+      .maybeSingle();
     
     if (error) {
-      if (error.code === 'PGRST116') {
-        // No config found
-        return { success: false, message: "No SMTP configuration found" };
-      }
-      throw error;
+      console.error("Error fetching SMTP config:", error);
+      return { success: false, message: error.message };
+    }
+    
+    if (!data) {
+      return { success: false, message: "No SMTP configuration found" };
     }
     
     return { 

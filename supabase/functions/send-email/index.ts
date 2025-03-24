@@ -42,6 +42,7 @@ serve(async (req) => {
         });
         
         if (!response.ok) {
+          console.error("Failed to verify user token:", response.status, await response.text());
           throw new Error("Failed to verify user token");
         }
         
@@ -97,75 +98,88 @@ serve(async (req) => {
     if (config.auth_method === "oauth2" && config.host.includes("gmail")) {
       console.log("Using Gmail API for sending email");
       
-      // Gmail API requires an access token
-      // We need to check if we need to refresh the token
-      let accessToken = config.access_token;
+      // Validate required OAuth2 credentials
+      if (!config.client_id) {
+        throw new Error("Missing client_id for Gmail OAuth2");
+      }
       
-      // If no access token or it's expired, refresh it
-      if (!accessToken) {
-        console.log("No access token found, refreshing using refresh token");
-        // We need to refresh the token using the refresh token
-        if (!config.refresh_token) {
-          console.error("No refresh token available");
-          throw new Error("No refresh token available to get access token");
+      if (!config.client_secret) {
+        throw new Error("Missing client_secret for Gmail OAuth2");
+      }
+      
+      if (!config.refresh_token) {
+        throw new Error("Missing refresh_token for Gmail OAuth2");
+      }
+      
+      // Always refresh the token for Gmail API to ensure we have a valid one
+      console.log("Getting fresh access token using refresh token");
+      let accessToken;
+      
+      try {
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({
+            client_id: config.client_id,
+            client_secret: config.client_secret,
+            refresh_token: config.refresh_token,
+            grant_type: 'refresh_token'
+          })
+        });
+        
+        if (!tokenResponse.ok) {
+          const errorText = await tokenResponse.text();
+          console.error("Token refresh failed:", tokenResponse.status, errorText);
+          
+          // Check for common error patterns
+          if (tokenResponse.status === 401) {
+            throw new Error("Invalid OAuth2 credentials. Please check your OAuth configuration and regenerate refresh tokens.");
+          } else if (tokenResponse.status === 400 && errorText.includes("invalid_grant")) {
+            throw new Error("OAuth refresh token has expired or been revoked. Please reconfigure Gmail OAuth.");
+          } else {
+            throw new Error(`Failed to refresh access token: ${tokenResponse.status} - ${errorText}`);
+          }
         }
         
-        try {
-          const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-              client_id: config.client_id,
-              client_secret: config.client_secret,
-              refresh_token: config.refresh_token,
-              grant_type: 'refresh_token'
-            })
-          });
-          
-          if (!tokenResponse.ok) {
-            console.error("Token refresh failed:", tokenResponse.status, await tokenResponse.text());
-            throw new Error(`Failed to refresh access token: ${tokenResponse.status}`);
-          }
-          
-          const tokenData = await tokenResponse.json();
-          
-          if (tokenData.error) {
-            console.error("Error refreshing token:", tokenData);
-            throw new Error(`Failed to refresh access token: ${tokenData.error}`);
-          }
-          
-          accessToken = tokenData.access_token;
-          console.log("Access token refreshed successfully");
-          
-          // Update the access token in the database
-          const updateResponse = await fetch(
-            `${supabaseUrl}/rest/v1/smtp_configs?id=eq.${config.id}`,
-            {
-              method: 'PATCH',
-              headers: {
-                apikey: supabaseKey,
-                Authorization: `Bearer ${supabaseKey}`,
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal"
-              },
-              body: JSON.stringify({
-                access_token: accessToken
-              })
-            }
-          );
-          
-          if (!updateResponse.ok) {
-            console.error("Failed to update access token in database:", updateResponse.status);
-            // Continue anyway since we have a valid token for this request
-          } else {
-            console.log("Access token updated in database");
-          }
-        } catch (tokenError) {
-          console.error("Error during token refresh:", tokenError);
-          throw new Error("Failed to refresh access token: " + tokenError.message);
+        const tokenData = await tokenResponse.json();
+        
+        if (tokenData.error) {
+          console.error("Error refreshing token:", tokenData);
+          throw new Error(`Failed to refresh access token: ${tokenData.error}`);
         }
+        
+        accessToken = tokenData.access_token;
+        console.log("Access token refreshed successfully");
+        
+        // Update the access token in the database
+        const updateResponse = await fetch(
+          `${supabaseUrl}/rest/v1/smtp_configs?id=eq.${config.id}`,
+          {
+            method: 'PATCH',
+            headers: {
+              apikey: supabaseKey,
+              Authorization: `Bearer ${supabaseKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "return=minimal"
+            },
+            body: JSON.stringify({
+              access_token: accessToken,
+              updated_at: new Date().toISOString()
+            })
+          }
+        );
+        
+        if (!updateResponse.ok) {
+          console.error("Failed to update access token in database:", updateResponse.status);
+          // Continue anyway since we have a valid token for this request
+        } else {
+          console.log("Access token updated in database");
+        }
+      } catch (tokenError) {
+        console.error("Error during token refresh:", tokenError);
+        throw new Error("Failed to refresh access token: " + tokenError.message);
       }
       
       if (!accessToken) {
@@ -205,12 +219,30 @@ serve(async (req) => {
           })
         });
         
+        const responseStatus = gmailResponse.status;
+        const responseBody = await gmailResponse.text();
+        
         if (!gmailResponse.ok) {
-          console.error("Gmail API error response:", gmailResponse.status, await gmailResponse.text());
-          throw new Error(`Gmail API error: HTTP ${gmailResponse.status}`);
+          console.error("Gmail API error response:", responseStatus, responseBody);
+          
+          if (responseStatus === 401) {
+            throw new Error("Gmail API authorization failed. Your Gmail OAuth setup may need to be reconfigured.");
+          } else if (responseStatus === 403) {
+            throw new Error("Gmail API permission denied. Make sure your OAuth scope includes https://mail.google.com/");
+          } else if (responseStatus === 400) {
+            throw new Error(`Gmail API error: ${responseBody}`);
+          } else {
+            throw new Error(`Gmail API error: HTTP ${responseStatus} - ${responseBody}`);
+          }
         }
         
-        const gmailData = await gmailResponse.json();
+        let gmailData;
+        try {
+          gmailData = JSON.parse(responseBody);
+        } catch (jsonError) {
+          console.log("Non-JSON response from Gmail API", responseBody);
+          gmailData = { success: true };
+        }
         
         if (gmailData.error) {
           console.error("Gmail API error:", gmailData);
@@ -223,7 +255,7 @@ serve(async (req) => {
           JSON.stringify({ 
             success: true, 
             message: "Email sent successfully via Gmail API",
-            id: gmailData.id
+            id: gmailData.id || "message-sent"
           }),
           {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -254,10 +286,26 @@ serve(async (req) => {
   } catch (error) {
     console.error("Email sending error:", error);
     
+    // Determine if this is an OAuth error that needs special handling
+    const errorMessage = error.message || "Unknown error";
+    let userFriendlyMessage = `Failed to send email: ${errorMessage}`;
+    
+    if (
+      errorMessage.includes("OAuth") || 
+      errorMessage.includes("token") || 
+      errorMessage.includes("401") ||
+      errorMessage.includes("403")
+    ) {
+      userFriendlyMessage = 
+        "Gmail OAuth authentication failed. Please reconfigure your Gmail OAuth setup in Email Settings. " +
+        "This usually happens when refresh tokens expire or permissions change.";
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: `Failed to send email: ${error.message || "Unknown error"}`,
+        message: userFriendlyMessage,
+        technicalDetails: errorMessage,
         stack: error.stack
       }),
       {

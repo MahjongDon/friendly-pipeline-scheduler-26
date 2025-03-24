@@ -1,7 +1,8 @@
 
 import React, { useState } from "react";
-import { Inbox, Send, Archive, Star, Trash2, File, Search, Mail, MoreHorizontal, Settings, Link } from "lucide-react";
+import { Inbox, Send, Archive, Star, Trash2, File, Search, Mail, MoreHorizontal, Settings, Link, AlertCircle } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Header from "@/components/layout/Header";
@@ -16,6 +17,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ComposeDialog from "@/components/email/ComposeDialog";
+import EmailSetupDialog from "@/components/email/EmailSetupDialog";
+import { emailServices } from "@/types/emailAutomation";
 
 interface Email {
   id: string;
@@ -115,7 +119,10 @@ const EmailItem: React.FC<{
   email: Email;
   onToggleRead: (id: string) => void;
   onToggleStar: (id: string) => void;
-}> = ({ email, onToggleRead, onToggleStar }) => {
+  onReply?: (email: Email) => void;
+  onForward?: (email: Email) => void;
+  onDelete?: (id: string) => void;
+}> = ({ email, onToggleRead, onToggleStar, onReply, onForward, onDelete }) => {
   const formattedDate = new Date(email.date).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -184,11 +191,32 @@ const EmailItem: React.FC<{
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>Reply</DropdownMenuItem>
-            <DropdownMenuItem>Forward</DropdownMenuItem>
-            <DropdownMenuItem>Mark as {email.read ? "unread" : "read"}</DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => {
+              e.stopPropagation();
+              if (onReply) onReply(email);
+            }}>
+              Reply
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => {
+              e.stopPropagation();
+              if (onForward) onForward(email);
+            }}>
+              Forward
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => {
+              e.stopPropagation();
+              onToggleRead(email.id);
+            }}>
+              Mark as {email.read ? "unread" : "read"}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem 
+              className="text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onDelete) onDelete(email.id);
+              }}
+            >
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -203,6 +231,8 @@ const Email: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [emails, setEmails] = useState(sampleEmails);
   const [currentFolder, setCurrentFolder] = useState<"inbox" | "sent" | "archive" | "draft" | "trash">("inbox");
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
   const isMobile = useIsMobile();
   
   const filteredEmails = emails
@@ -224,6 +254,64 @@ const Email: React.FC = () => {
       email.id === id ? { ...email, starred: !email.starred } : email
     ));
   };
+  
+  const handleDeleteEmail = (id: string) => {
+    setEmails(emails.map(email => 
+      email.id === id ? { ...email, folder: "trash" } : email
+    ));
+    toast.success("Email moved to trash");
+  };
+  
+  const handleReplyEmail = (email: Email) => {
+    setIsComposeOpen(true);
+    // Implementation for reply would go here
+    toast.info("Reply functionality to be implemented with email service integration");
+  };
+  
+  const handleForwardEmail = (email: Email) => {
+    setIsComposeOpen(true);
+    // Implementation for forward would go here
+    toast.info("Forward functionality to be implemented with email service integration");
+  };
+  
+  const handleSendEmail = (email: {
+    to: string;
+    subject: string;
+    body: string;
+  }) => {
+    // Here you would normally send the email via an email service API
+    // For now, we'll simulate adding it to the sent folder
+    const newEmail: Email = {
+      id: `email-${Date.now()}`,
+      from: {
+        name: "Me",
+        email: "user@example.com"
+      },
+      to: {
+        name: email.to.split('@')[0],
+        email: email.to
+      },
+      subject: email.subject,
+      preview: email.body.substring(0, 100) + (email.body.length > 100 ? '...' : ''),
+      date: new Date().toISOString(),
+      read: true,
+      starred: false,
+      hasAttachment: false,
+      folder: "sent"
+    };
+    
+    setEmails([newEmail, ...emails]);
+    
+    // Show success message and prompt about email service setup
+    toast.success("Email sent successfully (simulation)");
+    setTimeout(() => {
+      toast({
+        title: "Email Service Setup Needed",
+        description: "To send real emails, set up an email service integration.",
+        action: <Button size="sm" variant="outline" onClick={() => setIsSetupOpen(true)}>Setup</Button>
+      });
+    }, 1500);
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -241,13 +329,16 @@ const Email: React.FC = () => {
         <main className="flex h-[calc(100vh-64px)]">
           <div className="w-56 border-r bg-white">
             <div className="p-4 space-y-2">
-              <Button className="w-full">
+              <Button className="w-full" onClick={() => setIsComposeOpen(true)}>
                 <Mail className="h-4 w-4 mr-2" /> Compose
               </Button>
               <Button variant="outline" className="w-full" asChild>
                 <RouterLink to="/email-automation">
                   <Settings className="h-4 w-4 mr-2" /> Email Automation
                 </RouterLink>
+              </Button>
+              <Button variant="ghost" className="w-full text-amber-600" onClick={() => setIsSetupOpen(true)}>
+                <AlertCircle className="h-4 w-4 mr-2" /> Setup Email Service
               </Button>
             </div>
             
@@ -344,6 +435,9 @@ const Email: React.FC = () => {
                     email={email} 
                     onToggleRead={handleToggleRead}
                     onToggleStar={handleToggleStar}
+                    onReply={handleReplyEmail}
+                    onForward={handleForwardEmail}
+                    onDelete={handleDeleteEmail}
                   />
                 ))
               )}
@@ -351,6 +445,18 @@ const Email: React.FC = () => {
           </div>
         </main>
       </div>
+      
+      <ComposeDialog 
+        isOpen={isComposeOpen} 
+        onOpenChange={setIsComposeOpen}
+        onSend={handleSendEmail}
+      />
+      
+      <EmailSetupDialog
+        isOpen={isSetupOpen}
+        onOpenChange={setIsSetupOpen}
+        emailServices={emailServices}
+      />
     </div>
   );
 };

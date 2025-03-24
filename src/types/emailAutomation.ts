@@ -43,3 +43,32 @@ export interface AutomationAction {
     specificDate?: Date;
   };
 }
+
+export interface EmailService {
+  name: string;
+  isConfigured: boolean;
+  description: string;
+}
+
+export const emailServices: EmailService[] = [
+  {
+    name: "SMTP",
+    isConfigured: false,
+    description: "Connect your SMTP server to send emails directly"
+  },
+  {
+    name: "SendGrid",
+    isConfigured: false,
+    description: "Use SendGrid's API to send transactional emails"
+  },
+  {
+    name: "Mailchimp",
+    isConfigured: false,
+    description: "Connect to Mailchimp for email campaigns and automation"
+  },
+  {
+    name: "Amazon SES",
+    isConfigured: false,
+    description: "Use Amazon Simple Email Service for reliable email delivery"
+  }
+];

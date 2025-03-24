@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import Profile from "./pages/Profile";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedLayout from "./components/layout/ProtectedLayout";
 
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/email-automation" element={<EmailAutomation />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/help" element={<Help />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
             
             {/* Catch-all route */}

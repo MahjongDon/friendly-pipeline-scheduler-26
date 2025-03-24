@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 type AuthContextType = {
@@ -13,7 +12,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any; data: any }>;
   signOut: () => Promise<void>;
-  resendVerificationEmail: () => Promise<{ error: any }>;
+  resendVerificationEmail: (email?: string) => Promise<{ error: any }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,16 +88,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const resendVerificationEmail = async () => {
+  const resendVerificationEmail = async (email?: string) => {
     try {
       // Get the current URL of the application for redirect
       const redirectUrl = window.location.origin + "/auth";
       console.log("Email resend redirect URL:", redirectUrl);
       
-      // This will only work if the user has already signed up
+      if (!email && !user?.email) {
+        toast.error("No email address to send verification to");
+        return { error: new Error("No email address provided") };
+      }
+      
+      // Use provided email or fall back to user's email
+      const emailToUse = email || user?.email || '';
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: user?.email || '',
+        email: emailToUse,
         options: {
           emailRedirectTo: redirectUrl,
         }
@@ -112,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           toast.error(error.message);
         }
       } else {
-        toast.success("Verification email resent. Please check your inbox");
+        toast.success(`Verification email resent to ${emailToUse}. Please check your inbox`);
       }
       
       return { error };

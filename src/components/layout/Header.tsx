@@ -27,7 +27,7 @@ const Header = () => {
     if (path === "/pipeline") return "Pipeline";
     if (path === "/tasks") return "Tasks";
     if (path === "/calendar") return "Calendar";
-    return "CRM Suite";
+    return path.substring(1).charAt(0).toUpperCase() + path.substring(2);
   };
 
   const handleSignOut = async () => {
@@ -37,9 +37,7 @@ const Header = () => {
   };
 
   const handleProfileClick = () => {
-    toast.info("Profile page coming soon");
-    // This would navigate to a profile page when implemented
-    // navigate("/profile");
+    navigate("/profile");
   };
 
   const handleSettingsClick = () => {

@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,15 +17,16 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState("login");
   const [resendingEmail, setResendingEmail] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signIn, signUp, resendVerificationEmail, isVerified } = useAuth();
   
-  // Check if user is already authenticated
+  const from = location.state?.from?.pathname || "/";
+  
   useEffect(() => {
     if (user && isVerified) {
-      // If user is already authenticated, redirect to the previous page
-      navigate(-1);
+      navigate(from, { replace: true });
     }
-  }, [user, isVerified, navigate]);
+  }, [user, isVerified, navigate, from]);
   
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +42,6 @@ const Auth = () => {
       const { error, data } = await signUp(email, password);
       
       if (error) {
-        // Check for specific errors
         if (error.message.includes("already registered")) {
           toast.error("This email is already registered. Please log in instead.");
         } else {
@@ -78,7 +77,7 @@ const Auth = () => {
         }
       } else {
         toast.success("Login successful!");
-        navigate(-1); // Go back to previous page
+        navigate(from, { replace: true });
       }
     } catch (error) {
       console.error("Error logging in:", error);
@@ -91,16 +90,29 @@ const Auth = () => {
   const handleResendVerificationEmail = async () => {
     setResendingEmail(true);
     try {
-      await resendVerificationEmail();
+      const result = await resendVerificationEmail(email);
+      if (result.error) {
+        toast.error(result.error.message || "Failed to resend verification email");
+      }
+    } catch (error) {
+      console.error("Error resending verification:", error);
+      toast.error("Failed to resend verification email");
     } finally {
       setResendingEmail(false);
     }
   };
   
-  // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setIsSignUp(false);
+  };
+  
+  const handleBackClick = () => {
+    if (location.state?.from) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
   };
   
   if (loading && !isSignUp) {
@@ -112,7 +124,6 @@ const Auth = () => {
     );
   }
   
-  // Show email verification message
   if (isSignUp) {
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
@@ -175,7 +186,7 @@ const Auth = () => {
         <Button 
           variant="ghost" 
           className="mb-6" 
-          onClick={() => navigate(-1)}
+          onClick={handleBackClick}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back

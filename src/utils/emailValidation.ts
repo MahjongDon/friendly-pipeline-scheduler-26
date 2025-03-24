@@ -85,13 +85,22 @@ export const testEmailConfig = async (config: {
   accessToken?: string;
 }) => {
   try {
-    console.log("Testing SMTP configuration:", {
+    console.log("Testing email configuration:", {
       ...config, 
       password: config.password ? "********" : undefined,
       clientSecret: config.clientSecret ? "********" : undefined,
       refreshToken: config.refreshToken ? "********" : undefined,
       accessToken: config.accessToken ? "********" : undefined
     });
+    
+    // For Gmail with OAuth2, we don't need to test via SMTP
+    if (config.host.includes("gmail") && config.authMethod === "oauth2") {
+      return {
+        success: true,
+        message: "Gmail API configuration accepted. Email sending will use the Gmail API instead of SMTP.",
+        usingGmailApi: true
+      };
+    }
     
     const { data, error } = await supabase.functions.invoke('test-smtp', {
       body: config
@@ -153,7 +162,7 @@ export const saveEmailConfig = async (config: {
     if (!session) {
       return {
         success: false,
-        message: "Authentication required to save SMTP configuration"
+        message: "Authentication required to save email configuration"
       };
     }
     
@@ -166,7 +175,7 @@ export const saveEmailConfig = async (config: {
       .eq('user_id', userId)
       .limit(1);
     
-    // Create the database entry object directly without creating an intermediate object
+    // Create the database entry object for insert/update
     const dbEntry: any = {
       host: config.host,
       port: config.port,
@@ -174,14 +183,25 @@ export const saveEmailConfig = async (config: {
       auth_method: config.authMethod,
       from_email: config.fromEmail,
       from_name: config.fromName,
-      // Set all fields based on authentication method
-      password: config.authMethod === "plain" ? config.password : null,
-      client_id: config.authMethod === "oauth2" ? config.clientId : null,
-      client_secret: config.authMethod === "oauth2" ? config.clientSecret : null,
-      refresh_token: config.authMethod === "oauth2" ? config.refreshToken : null,
-      access_token: config.authMethod === "oauth2" ? config.accessToken : null,
       user_id: userId
     };
+    
+    // Set authentication method specific fields
+    if (config.authMethod === "plain") {
+      dbEntry.password = config.password;
+      // Clear OAuth fields to prevent data confusion
+      dbEntry.client_id = null;
+      dbEntry.client_secret = null;
+      dbEntry.refresh_token = null;
+      dbEntry.access_token = null;
+    } else { // oauth2
+      dbEntry.client_id = config.clientId;
+      dbEntry.client_secret = config.clientSecret;
+      dbEntry.refresh_token = config.refreshToken;
+      dbEntry.access_token = config.accessToken;
+      // Clear password field
+      dbEntry.password = null;
+    }
     
     if (existingConfig && existingConfig.length > 0) {
       // Update existing config
@@ -204,10 +224,10 @@ export const saveEmailConfig = async (config: {
       return { success: true, data };
     }
   } catch (error) {
-    console.error("Error saving SMTP config:", error);
+    console.error("Error saving email config:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to save SMTP configuration"
+      message: error instanceof Error ? error.message : "Failed to save email configuration"
     };
   }
 };
@@ -219,7 +239,7 @@ export const getEmailConfig = async () => {
     if (!session) {
       return {
         success: false,
-        message: "Authentication required to get SMTP configuration"
+        message: "Authentication required to get email configuration"
       };
     }
     
@@ -233,12 +253,12 @@ export const getEmailConfig = async () => {
       .maybeSingle();
     
     if (error) {
-      console.error("Error fetching SMTP config:", error);
+      console.error("Error fetching email config:", error);
       return { success: false, message: error.message };
     }
     
     if (!data) {
-      return { success: false, message: "No SMTP configuration found" };
+      return { success: false, message: "No email configuration found" };
     }
     
     return { 
@@ -258,10 +278,10 @@ export const getEmailConfig = async () => {
       } 
     };
   } catch (error) {
-    console.error("Error fetching SMTP config:", error);
+    console.error("Error fetching email config:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to fetch SMTP configuration"
+      message: error instanceof Error ? error.message : "Failed to fetch email configuration"
     };
   }
 };

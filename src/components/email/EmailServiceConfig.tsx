@@ -13,17 +13,44 @@ import {
   getEmailConfig 
 } from "@/utils/emailValidation";
 import { useAuth } from "@/contexts/AuthContext";
-import { AlertCircle, HelpCircle, ExternalLink, Info, Lock } from "lucide-react";
+import { AlertCircle, HelpCircle, ExternalLink, Info, Lock, X, ChevronRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Separator } from "@/components/ui/separator";
 
 interface EmailServiceConfigProps {
   service: EmailService;
   onSave: (service: EmailService, config: any) => void;
   onCancel: () => void;
 }
+
+// Gmail OAuth2 Help Component
+const GmailOAuthHelp = () => (
+  <div className="space-y-2 text-sm">
+    <h3 className="font-semibold">Setting up Gmail OAuth2</h3>
+    <ol className="list-decimal pl-5 space-y-2">
+      <li>Go to the <a href="https://console.developers.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a></li>
+      <li>Create a new project</li>
+      <li>Enable the Gmail API</li>
+      <li>Configure the OAuth consent screen</li>
+      <li>Create OAuth credentials (client ID and client secret)</li>
+      <li>Use the OAuth Playground to get a refresh token:
+        <ul className="list-disc pl-5 mt-1 space-y-1">
+          <li>Go to <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">OAuth Playground</a></li>
+          <li>Click the settings icon (⚙️) and check "Use your own OAuth credentials"</li>
+          <li>Enter your Client ID and Client Secret</li>
+          <li>Select "Gmail API v1" and the scopes <code>https://mail.google.com/</code></li>
+          <li>Click "Authorize APIs" and follow the prompts</li>
+          <li>Click "Exchange authorization code for tokens"</li>
+          <li>Copy the refresh token for use in this form</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+);
 
 const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   service,
@@ -48,7 +75,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [configError, setConfigError] = useState<string | null>(null);
   const [diagnosticInfo, setDiagnosticInfo] = useState<string | null>(null);
   const [cloudLimitation, setCloudLimitation] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -118,13 +145,18 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
             port, 
             username, 
             authMethod,
-            ...(authMethod === "plain" 
-              ? { password } 
-              : { clientId, clientSecret, refreshToken, accessToken }
-            ),
             fromEmail, 
             fromName 
           };
+          
+          if (authMethod === "plain") {
+            config.password = password;
+          } else {
+            config.clientId = clientId;
+            config.clientSecret = clientSecret;
+            config.refreshToken = refreshToken;
+            config.accessToken = accessToken;
+          }
           
           validationResult = validateEmailConfig(config);
           
@@ -184,18 +216,23 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
       setCloudLimitation(false);
       
       try {
-        const config = { 
+        const config: any = { 
           host, 
           port, 
           username, 
           authMethod,
-          ...(authMethod === "plain" 
-            ? { password } 
-            : { clientId, clientSecret, refreshToken, accessToken }
-          ),
           fromEmail, 
           fromName 
         };
+        
+        if (authMethod === "plain") {
+          config.password = password;
+        } else {
+          config.clientId = clientId;
+          config.clientSecret = clientSecret;
+          config.refreshToken = refreshToken;
+          config.accessToken = accessToken;
+        }
         
         const validationResult = validateEmailConfig(config);
         
@@ -206,21 +243,21 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           return;
         }
         
-        toast.info("Testing SMTP connection, please wait...");
+        toast.info("Testing email connection, please wait...");
         const testResult = await testEmailConfig(config);
         
         if (testResult.success) {
-          toast.success(testResult.message || "SMTP connection test successful");
+          toast.success(testResult.message || "Email connection test successful");
         } else {
           // Show cloud limitation message regardless when it comes to Gmail OAuth
           if (host.includes("gmail") && authMethod === "oauth2") {
             setCloudLimitation(true);
-            toast.error("Gmail SMTP connections often fail in serverless environments. Consider using SendGrid instead.");
+            toast.error("Gmail SMTP connections often fail in serverless environments. We'll use the Gmail API instead.");
           } else {
-            toast.error(testResult.message || "Failed to test SMTP connection");
+            toast.error(testResult.message || "Failed to test email connection");
           }
           
-          setConfigError(testResult.message || "Failed to test SMTP connection");
+          setConfigError(testResult.message || "Failed to test email connection");
           
           if (testResult.diagnosticInfo) {
             setDiagnosticInfo(testResult.diagnosticInfo);
@@ -237,9 +274,9 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           }
         }
       } catch (error) {
-        toast.error("Failed to test SMTP connection");
+        toast.error("Failed to test email connection");
         console.error("SMTP test error:", error);
-        setConfigError("Failed to test SMTP connection: " + (error instanceof Error ? error.message : "Unknown error"));
+        setConfigError("Failed to test connection: " + (error instanceof Error ? error.message : "Unknown error"));
       } finally {
         setIsTesting(false);
       }
@@ -308,6 +345,18 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="oauth2" id="auth-oauth2" />
             <Label htmlFor="auth-oauth2" className="cursor-pointer">OAuth2 (Required for Gmail)</Label>
+            
+            {host.includes("gmail") && authMethod === "oauth2" && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                type="button" 
+                onClick={() => setIsHelpOpen(true)}
+                className="p-1 h-auto text-xs text-blue-600"
+              >
+                Need help?
+              </Button>
+            )}
           </div>
         </RadioGroup>
       </div>
@@ -331,7 +380,20 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
         </div>
       ) : (
         <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium text-sm">OAuth2 Credentials</h4>
+          <h4 className="font-medium text-sm flex justify-between items-center">
+            <span>OAuth2 Credentials</span>
+            {host.includes("gmail") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                type="button" 
+                onClick={() => setIsHelpOpen(true)}
+                className="h-7 text-xs px-2"
+              >
+                <Info className="h-3 w-3 mr-1" /> OAuth2 Setup Guide
+              </Button>
+            )}
+          </h4>
           <div className="space-y-2">
             <Label htmlFor="client-id">Client ID</Label>
             <Input 
@@ -371,54 +433,6 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
               onChange={(e) => setAccessToken(e.target.value)}
             />
           </div>
-          
-          {host.includes("gmail") && (
-            <Collapsible 
-              open={showHelp}
-              onOpenChange={setShowHelp}
-              className="border rounded-md p-2 mt-2 bg-blue-50 border-blue-200"
-            >
-              <CollapsibleTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="p-0 w-full flex justify-between items-center text-blue-600 hover:text-blue-800 hover:bg-transparent"
-                >
-                  <span className="flex items-center text-sm font-medium">
-                    <Info className="h-4 w-4 mr-1" /> Gmail OAuth2 Setup Help
-                  </span>
-                  <span className="text-xs">{showHelp ? "Hide" : "Show"}</span>
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2">
-                <ol className="text-xs list-decimal pl-5 space-y-1 text-blue-800">
-                  <li>Go to the <a href="https://console.developers.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a></li>
-                  <li>Create a new project</li>
-                  <li>Enable the Gmail API</li>
-                  <li>Configure the OAuth consent screen</li>
-                  <li>Create OAuth credentials (client ID and client secret)</li>
-                  <li>Use the OAuth Playground to get a refresh token:
-                    <ul className="list-disc pl-5 mt-1">
-                      <li>Go to <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">OAuth Playground</a></li>
-                      <li>Click the settings icon (⚙️) and check "Use your own OAuth credentials"</li>
-                      <li>Enter your Client ID and Client Secret</li>
-                      <li>Select "Gmail API v1" and the scopes <code>https://mail.google.com/</code></li>
-                      <li>Click "Authorize APIs" and follow the prompts</li>
-                      <li>Click "Exchange authorization code for tokens"</li>
-                      <li>Copy the refresh token for use in this form</li>
-                    </ul>
-                  </li>
-                </ol>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2 text-xs text-blue-600 hover:text-blue-800"
-                  onClick={() => setShowHelp(false)}
-                >
-                  Close
-                </Button>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
         </div>
       )}
       
@@ -506,91 +520,101 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   }
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Configure {service.name}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {configError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2" />
-            <div>
-              <p className="text-sm">{configError}</p>
-              {diagnosticInfo && (
-                <p className="text-sm mt-1 text-red-700">
-                  <span className="font-medium">Diagnostic info:</span> {diagnosticInfo}
-                </p>
-              )}
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Configure {service.name}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {configError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-start">
+              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2" />
+              <div>
+                <p className="text-sm">{configError}</p>
+                {diagnosticInfo && (
+                  <p className="text-sm mt-1 text-red-700">
+                    <span className="font-medium">Diagnostic info:</span> {diagnosticInfo}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {cloudLimitation && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800">
-            <h4 className="font-medium mb-1 flex items-center">
-              Cloud Environment Limitation
-            </h4>
-            <p className="text-sm mb-2">
-              Direct SMTP connections often fail in serverless environments due to network restrictions. We recommend:
-            </p>
-            <ul className="text-sm list-disc pl-5 space-y-1">
-              <li>Using a dedicated email service API like SendGrid instead</li>
-              <li>For Gmail specifically, use the Gmail API instead of SMTP</li>
-            </ul>
-            <div className="mt-3">
-              <Button 
-                size="sm" 
-                variant="secondary"
-                onClick={() => {
-                  onCancel();
-                  // Find SendGrid in the services and select it
-                  const sendGridService = emailServices.find(s => s.name === "SendGrid");
-                  if (sendGridService) {
-                    onSave(service, {}); // Close this form
-                    toast.info("Consider using SendGrid instead of SMTP");
-                  }
-                }}
-              >
-                Switch to SendGrid
-              </Button>
+          {cloudLimitation && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800">
+              <h4 className="font-medium mb-1 flex items-center">
+                Using Gmail API for Email Sending
+              </h4>
+              <p className="text-sm mb-2">
+                Direct SMTP connections don't work in serverless environments, but don't worry! 
+                For Gmail, we'll use the Gmail API behind the scenes instead of SMTP.
+              </p>
+              <div className="text-sm mb-2">
+                <strong>Benefits:</strong>
+                <ul className="list-disc ml-5 space-y-1 mt-1">
+                  <li>Works reliably in cloud environments</li>
+                  <li>No need for SMTP port configuration</li>
+                  <li>Better security with OAuth2</li>
+                </ul>
+              </div>
+              <p className="text-sm">
+                Just configure your OAuth2 credentials and we'll handle the rest!
+              </p>
             </div>
-          </div>
-        )}
-        
-        {service.name === "SMTP" && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
-            <h4 className="font-medium mb-1">Troubleshooting Tips</h4>
-            <ul className="text-sm list-disc pl-5 space-y-1">
-              <li>For Gmail, you must use OAuth2 authentication as Google has disabled less secure app access</li>
-              <li><strong>Use port 587 for most reliable results</strong> (port 465 has compatibility issues)</li>
-              <li><strong>Note:</strong> Direct SMTP connections often fail in serverless environments. Consider using SendGrid instead.</li>
-            </ul>
-          </div>
-        )}
-        
-        <form id="email-service-form" onSubmit={handleSave}>
-          {service.name === "SMTP" ? renderSmtpForm() : renderApiForm()}
-        </form>
-      </CardContent>
-      <CardFooter className="flex justify-end gap-2">
-        {service.name === "SMTP" && (
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={handleTest}
-            disabled={isTesting}
-          >
-            {isTesting ? "Testing..." : "Test Connection"}
+          )}
+          
+          {service.name === "SMTP" && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
+              <h4 className="font-medium mb-1">Configuration Tips</h4>
+              <ul className="text-sm list-disc pl-5 space-y-1">
+                <li>For Gmail, you must use OAuth2 authentication</li>
+                <li>We recommend port 587 for most reliable results</li>
+                <li>For Gmail specifically, we'll use the Gmail API instead of SMTP for better reliability</li>
+              </ul>
+            </div>
+          )}
+          
+          <form id="email-service-form" onSubmit={handleSave}>
+            {service.name === "SMTP" ? renderSmtpForm() : renderApiForm()}
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-end gap-2">
+          {service.name === "SMTP" && (
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleTest}
+              disabled={isTesting}
+            >
+              {isTesting ? "Testing..." : "Test Connection"}
+            </Button>
+          )}
+          <Button variant="outline" onClick={onCancel} disabled={isSaving}>
+            Cancel
           </Button>
-        )}
-        <Button variant="outline" onClick={onCancel} disabled={isSaving}>
-          Cancel
-        </Button>
-        <Button type="submit" form="email-service-form" disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save Configuration"}
-        </Button>
-      </CardFooter>
-    </Card>
+          <Button type="submit" form="email-service-form" disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Configuration"}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      {/* Help Drawer - Slides in from the side instead of cluttering the main UI */}
+      <Drawer open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+        <DrawerContent className="max-h-[85vh] overflow-y-auto">
+          <DrawerHeader className="border-b">
+            <DrawerTitle>Gmail OAuth2 Setup Guide</DrawerTitle>
+          </DrawerHeader>
+          <div className="p-6">
+            <GmailOAuthHelp />
+          </div>
+          <DrawerFooter className="pt-2">
+            <DrawerClose asChild>
+              <Button variant="outline">Close Guide</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </>
   );
 };
 

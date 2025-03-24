@@ -20,7 +20,6 @@ import { sampleTemplates } from "@/data/sampleEmailData";
 import EmailSetupDialog from "@/components/email/EmailSetupDialog";
 import { emailServices } from "@/types/emailAutomation";
 
-// Sample email data
 const emails = [
   {
     id: "email-1",
@@ -139,13 +138,11 @@ const Email = () => {
             
             <div className="flex items-center gap-3">
               <Button 
-                variant="outline" 
-                size="sm" 
                 onClick={() => setIsSetupOpen(true)}
               >
                 Email Settings
               </Button>
-              <Button size="sm" onClick={() => setIsComposeOpen(true)}>
+              <Button variant="outline" size="sm" onClick={() => setIsComposeOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" /> Compose
               </Button>
             </div>

@@ -7,34 +7,37 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Mail, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
   const navigate = useNavigate();
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn, signUp, isVerified } = useAuth();
   
   // Check if user is already authenticated
   useEffect(() => {
-    if (user) {
+    if (user && isVerified) {
       // If user is already authenticated, redirect to the previous page
       navigate(-1);
     }
-  }, [user, navigate]);
+  }, [user, isVerified, navigate]);
   
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      const { error } = await signUp(email, password);
+      const { error, data } = await signUp(email, password);
       
       if (error) {
         toast.error(error.message);
       } else {
+        setIsSignUp(true);
         toast.success("Check your email for the confirmation link!");
       }
     } catch (error) {
@@ -53,7 +56,12 @@ const Auth = () => {
       const { error } = await signIn(email, password);
       
       if (error) {
-        toast.error(error.message);
+        if (error.message.includes("Email not confirmed")) {
+          setIsSignUp(true);
+          toast.error("Please verify your email before signing in");
+        } else {
+          toast.error(error.message);
+        }
       } else {
         toast.success("Login successful!");
         navigate(-1); // Go back to previous page
@@ -66,11 +74,60 @@ const Auth = () => {
     }
   };
   
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setIsSignUp(false);
+  };
+  
   // Show loading state while checking authentication
-  if (loading) {
+  if (loading && !isSignUp) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Loading...</p>
+      </div>
+    );
+  }
+  
+  // Show email verification message
+  if (isSignUp) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50">
+        <div className="container max-w-md mx-auto py-10">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center">
+                <Mail className="mr-2 h-5 w-5" />
+                Verify Your Email
+              </CardTitle>
+              <CardDescription>
+                We've sent a verification link to your email
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start">
+                <AlertCircle className="text-blue-500 mr-2 h-5 w-5 mt-0.5" />
+                <div>
+                  <p className="text-sm text-blue-700">
+                    Please check <strong>{email}</strong> for a verification link. You need to verify your email before you can sign in.
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500">
+                If you don't see the email, check your spam folder or try again.
+              </p>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-2">
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => setIsSignUp(false)}
+              >
+                Back to Login
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -87,7 +144,7 @@ const Auth = () => {
           Back
         </Button>
         
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>

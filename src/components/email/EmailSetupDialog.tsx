@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, Link, AlertCircle, CheckCircle, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import EmailServiceConfig from "./EmailServiceConfig";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { getEmailConfig } from "@/utils/emailValidation";
 
 interface EmailSetupDialogProps {
   isOpen: boolean;
@@ -39,8 +40,33 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
   const [services, setServices] = useState<EmailService[]>(emailServices);
   const [selectedService, setSelectedService] = useState<EmailService | null>(null);
   const [activeTab, setActiveTab] = useState("services");
+  const [hasConfiguredEmail, setHasConfiguredEmail] = useState(false);
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  
+  // Check if user has already configured email service
+  useEffect(() => {
+    if (user && isOpen) {
+      const checkEmailConfig = async () => {
+        const result = await getEmailConfig();
+        if (result.success && result.config) {
+          setHasConfiguredEmail(true);
+          
+          // Update services to mark the configured one
+          const updatedServices = services.map(service => {
+            if (service.name === "SMTP") {
+              return { ...service, isConfigured: true };
+            }
+            return service;
+          });
+          
+          setServices(updatedServices);
+        }
+      };
+      
+      checkEmailConfig();
+    }
+  }, [user, isOpen, services]);
   
   const handleConfigureService = (service: EmailService) => {
     if (!user) {
@@ -66,6 +92,7 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
     setServices(updatedServices);
     setSelectedService(null);
     setActiveTab("services");
+    setHasConfiguredEmail(true);
     
     toast.success(`${service.name} configured successfully`);
   };
@@ -126,7 +153,9 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Set Up Email Service</DialogTitle>
           <DialogDescription>
-            To send real emails, you need to connect to an email service
+            {hasConfiguredEmail 
+              ? "Manage your email service configuration"
+              : "To send real emails, you need to connect to an email service"}
           </DialogDescription>
         </DialogHeader>
 
@@ -142,18 +171,35 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
             <div className="py-4">
               {renderAuthWarning()}
               
-              <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
-                <div className="flex items-start">
-                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 mr-2" />
-                  <div>
-                    <h3 className="font-medium text-amber-800">Email Sending Setup Required</h3>
-                    <p className="text-sm text-amber-700 mt-1">
-                      Currently, the application is using simulated email sending. To send real emails,
-                      you'll need to integrate with an email service provider.
-                    </p>
+              {!hasConfiguredEmail && (
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 mr-2" />
+                    <div>
+                      <h3 className="font-medium text-amber-800">Email Sending Setup Required</h3>
+                      <p className="text-sm text-amber-700 mt-1">
+                        Currently, the application is using simulated email sending. To send real emails,
+                        you'll need to integrate with an email service provider.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+              
+              {hasConfiguredEmail && (
+                <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
+                  <div className="flex items-start">
+                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 mr-2" />
+                    <div>
+                      <h3 className="font-medium text-green-800">Email Service Configured</h3>
+                      <p className="text-sm text-green-700 mt-1">
+                        Your email service is configured and ready to send real emails.
+                        You can edit your configuration below if needed.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <h3 className="text-lg font-medium mb-4">Available Email Services</h3>
               
@@ -190,15 +236,17 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
                 ))}
               </div>
               
-              <div className="mt-6">
-                <h3 className="text-lg font-medium mb-2">Next Steps</h3>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li>Choose an email service provider from the options above</li>
-                  <li>Sign up for an account if you don't already have one</li>
-                  <li>Configure your API keys or SMTP settings</li>
-                  <li>Complete the integration setup</li>
-                </ul>
-              </div>
+              {!hasConfiguredEmail && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium mb-2">Next Steps</h3>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>Choose an email service provider from the options above</li>
+                    <li>Sign up for an account if you don't already have one</li>
+                    <li>Configure your API keys or SMTP settings</li>
+                    <li>Complete the integration setup</li>
+                  </ul>
+                </div>
+              )}
             </div>
           </TabsContent>
           

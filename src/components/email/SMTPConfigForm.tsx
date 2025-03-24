@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import GmailOAuthHelp from "./GmailOAuthHelp";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ConfigurationTips from "./ConfigurationTips";
 
 interface SMTPConfigFormProps {
   host: string;
@@ -75,6 +76,30 @@ const SMTPConfigForm: React.FC<SMTPConfigFormProps> = ({
           </AlertDescription>
         </Alert>
       )}
+
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-sm font-medium">Email Configuration</h3>
+        <div className="flex space-x-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center">
+                <Info className="h-4 w-4 mr-1" /> Configuration Tips
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:w-[500px] max-w-full overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Email Configuration Tips</SheetTitle>
+                <SheetDescription>
+                  Important information about setting up email services
+                </SheetDescription>
+              </SheetHeader>
+              <div className="py-4">
+                <ConfigurationTips />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">

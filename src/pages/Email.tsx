@@ -1,6 +1,5 @@
-
-import React, { useState } from "react";
-import { Check, Cog, Plus, Search, Trash } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Check, Cog, Plus, Search, Trash, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,6 +19,8 @@ import { EmailTemplate } from "@/types/emailAutomation";
 import { sampleTemplates } from "@/data/sampleEmailData";
 import EmailSetupDialog from "@/components/email/EmailSetupDialog";
 import { emailServices } from "@/types/emailAutomation";
+import { getEmailConfig, sendEmail } from "@/utils/emailValidation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const emails = [
   {
@@ -86,7 +87,25 @@ const Email = () => {
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [emailConfigured, setEmailConfigured] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
+  
+  useEffect(() => {
+    const checkEmailConfig = async () => {
+      setIsLoading(true);
+      try {
+        const result = await getEmailConfig();
+        setEmailConfigured(result.success);
+      } catch (error) {
+        console.error("Error checking email config:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkEmailConfig();
+  }, []);
   
   const filteredEmails = emails
     .filter(email => email.folder === selectedFolder)
@@ -97,23 +116,35 @@ const Email = () => {
     );
     
   const handleDeleteEmail = (emailId: string) => {
-    // In a real app, this would delete from the database
     toast.success("Email deleted successfully");
   };
   
-  const handleSendEmail = (emailData: { to: string; subject: string; body: string }) => {
-    // In a real app, this would send via an email API
-    toast.success("Email sent successfully");
+  const handleSendEmail = async (emailData: { to: string; subject: string; body: string }) => {
+    if (emailConfigured) {
+      try {
+        const result = await sendEmail(emailData);
+        
+        if (result.success) {
+          toast.success("Email sent successfully");
+        } else {
+          toast.error(`Failed to send email: ${result.message}`);
+        }
+      } catch (error) {
+        console.error("Error sending email:", error);
+        toast.error("Failed to send email due to an unexpected error");
+      }
+    } else {
+      toast.success("Email sent successfully (simulation)");
+    }
+    
     setIsComposeOpen(false);
   };
   
   const handleMarkAsRead = (emailId: string) => {
-    // In a real app, this would mark as read in the database
     toast.success("Email marked as read");
   };
   
   const handleMarkAsImportant = (emailId: string) => {
-    // In a real app, this would mark as important in the database
     toast.success("Email marked as important");
   };
 
@@ -152,8 +183,51 @@ const Email = () => {
             </div>
           </div>
           
+          {!isLoading && !emailConfigured && (
+            <Alert className="mb-6 bg-amber-50 border-amber-200 flex items-center">
+              <AlertDescription className="flex items-center">
+                <Mail className="h-5 w-5 text-amber-600 mr-2" />
+                <div>
+                  <span className="font-medium text-amber-800">Email service not configured</span>
+                  <span className="ml-2 text-amber-700">
+                    Currently using simulated email sending.
+                  </span>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="ml-3 bg-white"
+                    onClick={() => setIsSetupOpen(true)}
+                  >
+                    Configure Email
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {!isLoading && emailConfigured && (
+            <Alert className="mb-6 bg-green-50 border-green-200 flex items-center">
+              <AlertDescription className="flex items-center">
+                <Check className="h-5 w-5 text-green-600 mr-2" />
+                <div>
+                  <span className="font-medium text-green-800">Email service configured</span>
+                  <span className="ml-2 text-green-700">
+                    Your application is ready to send real emails.
+                  </span>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="ml-3 bg-white"
+                    onClick={() => setIsSetupOpen(true)}
+                  >
+                    Manage Settings
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Email Folders */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow p-4">
                 <div className="mb-4">
@@ -204,7 +278,6 @@ const Email = () => {
               </div>
             </div>
             
-            {/* Email List & Detail */}
             <div className="lg:col-span-3">
               <div className="bg-white rounded-lg shadow">
                 <div className="p-4 border-b">
@@ -334,6 +407,7 @@ const Email = () => {
             onOpenChange={setIsComposeOpen}
             onSend={handleSendEmail}
             templates={sampleTemplates}
+            usingRealEmailService={emailConfigured}
           />
           
           <EmailSetupDialog

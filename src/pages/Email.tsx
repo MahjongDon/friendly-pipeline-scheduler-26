@@ -123,21 +123,18 @@ const Email = () => {
     if (emailConfigured) {
       try {
         const result = await sendEmail(emailData);
-        
-        if (result.success) {
-          toast.success("Email sent successfully");
-        } else {
-          toast.error(`Failed to send email: ${result.message}`);
-        }
+        return result;
       } catch (error) {
         console.error("Error sending email:", error);
-        toast.error("Failed to send email due to an unexpected error");
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : "Failed to send email due to an unexpected error"
+        };
       }
     } else {
       toast.success("Email sent successfully (simulation)");
+      return { success: true };
     }
-    
-    setIsComposeOpen(false);
   };
   
   const handleMarkAsRead = (emailId: string) => {

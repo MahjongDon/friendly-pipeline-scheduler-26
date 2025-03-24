@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -38,7 +37,7 @@ const formSchema = z.object({
 interface ComposeDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSend: (data: z.infer<typeof formSchema>) => void;
+  onSend: (data: z.infer<typeof formSchema>) => Promise<{success: boolean; message?: string} | void>;
   templates: EmailTemplate[];
   usingRealEmailService?: boolean;
 }
@@ -91,15 +90,15 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
     try {
       const result = await onSend(data);
       
-      if (result && !result.success) {
-        setSendError(result.message || "Failed to send email");
+      if (result && 'success' in result && !result.success) {
+        const errorMessage = result.message || "Failed to send email";
+        setSendError(errorMessage);
         
-        // Check if it's an OAuth error
         if (
-          result.message && 
-          (result.message.includes("OAuth") || 
-           result.message.includes("Gmail") ||
-           result.message.includes("token"))
+          errorMessage && 
+          (errorMessage.includes("OAuth") || 
+           errorMessage.includes("Gmail") ||
+           errorMessage.includes("token"))
         ) {
           setIsOAuthError(true);
         }

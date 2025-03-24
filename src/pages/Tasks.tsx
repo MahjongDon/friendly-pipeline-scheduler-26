@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { PlusCircle, Filter, SlidersHorizontal, CheckCircle, Circle, MoreHorizontal } from "lucide-react";
+import { PlusCircle, Filter, SlidersHorizontal, CheckCircle, Circle, MoreHorizontal, Calendar as CalendarIcon, List, Users, ArrowUpDown, Check, Pencil, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +23,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { List, Users, ArrowUpDown, Check, Pencil, Trash } from "lucide-react";
 
 interface Task {
   id: string;
@@ -35,7 +35,6 @@ interface Task {
   createdAt: Date;
 }
 
-// Sample task data
 const initialTasks: Task[] = [
   {
     id: "task-1",
@@ -85,7 +84,6 @@ const TasksList = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editDueDate, setEditDueDate] = useState<Date | undefined>(undefined);
   
-  // Handler for marking a task as complete
   const handleCompleteTask = (taskId: string) => {
     setTasks(tasks.map(task => 
       task.id === taskId ? { ...task, completed: !task.completed } : task
@@ -93,20 +91,17 @@ const TasksList = () => {
     toast.success("Task status updated");
   };
   
-  // Handler for deleting a task
   const handleDeleteTask = (taskId: string) => {
     setTasks(tasks.filter(task => task.id !== taskId));
     toast.success("Task deleted successfully");
   };
   
-  // Handler for opening edit dialog
   const handleEditClick = (task: Task) => {
     setSelectedTask(task);
     setEditDueDate(task.dueDate);
     setIsEditTaskOpen(true);
   };
   
-  // Handler for saving edited task
   const handleEditTask = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -218,7 +213,6 @@ const TasksList = () => {
         </div>
       ))}
       
-      {/* Edit Task Dialog */}
       {selectedTask && (
         <Dialog open={isEditTaskOpen} onOpenChange={setIsEditTaskOpen}>
           <DialogContent className="sm:max-w-[500px]">
@@ -324,9 +318,6 @@ const Tasks = () => {
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // In a real application, we would add the task to our state here
-    // and possibly send it to a backend
     
     setIsAddTaskOpen(false);
     toast.success("Task added successfully");

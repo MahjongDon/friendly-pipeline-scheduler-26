@@ -1,12 +1,10 @@
 
 import React, { useState } from "react";
-import { List, Calendar as CalendarIcon, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import TaskDetail from "./TaskDetail";
 import { Task } from "@/types/task";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import TaskForm from "./TaskForm";
 import { toast } from "sonner";
+import TaskActions from "./TaskActions";
+import TaskEditDialog from "./TaskEditDialog";
 
 interface EnhancedTasksListProps {
   tasks: Task[];
@@ -66,21 +64,7 @@ const EnhancedTasksList: React.FC<EnhancedTasksListProps> = ({ tasks, setTasks }
   
   return (
     <div className="bg-white border rounded-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-4">
-          <Button variant="outline" size="sm" className="h-8">
-            <List className="h-4 w-4 mr-2" /> List View
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8">
-            <CalendarIcon className="h-4 w-4 mr-2" /> Calendar View
-          </Button>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" className="h-8">
-            <Users className="h-4 w-4 mr-2" /> Assignee
-          </Button>
-        </div>
-      </div>
+      <TaskActions />
 
       <div className="space-y-3">
         {tasks.map((task) => (
@@ -94,26 +78,14 @@ const EnhancedTasksList: React.FC<EnhancedTasksListProps> = ({ tasks, setTasks }
         ))}
       </div>
       
-      {selectedTask && (
-        <Dialog open={isEditTaskOpen} onOpenChange={setIsEditTaskOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Edit Task</DialogTitle>
-              <DialogDescription>
-                Make changes to your task details.
-              </DialogDescription>
-            </DialogHeader>
-            <TaskForm
-              task={selectedTask}
-              selectedDate={editDueDate}
-              setSelectedDate={setEditDueDate}
-              onSubmit={handleEditTask}
-              formTitle="Edit Task"
-              submitButtonText="Save Changes"
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      <TaskEditDialog
+        isOpen={isEditTaskOpen}
+        onOpenChange={setIsEditTaskOpen}
+        selectedTask={selectedTask}
+        editDueDate={editDueDate}
+        setEditDueDate={setEditDueDate}
+        onSubmit={handleEditTask}
+      />
     </div>
   );
 };

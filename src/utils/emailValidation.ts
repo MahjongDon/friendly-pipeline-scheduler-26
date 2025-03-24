@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const validateEmailConfig = (config: {
@@ -162,57 +161,38 @@ export const saveEmailConfig = async (config: {
       .eq('user_id', userId)
       .limit(1);
     
-    // Prepare data based on auth method
-    let configData = {
+    // Create the database entry object directly without creating an intermediate object
+    const dbEntry: any = {
       host: config.host,
       port: config.port,
       username: config.username,
       auth_method: config.authMethod,
       from_email: config.fromEmail,
       from_name: config.fromName,
+      // Set all fields based on authentication method
+      password: config.authMethod === "plain" ? config.password : null,
+      client_id: config.authMethod === "oauth2" ? config.clientId : null,
+      client_secret: config.authMethod === "oauth2" ? config.clientSecret : null,
+      refresh_token: config.authMethod === "oauth2" ? config.refreshToken : null,
+      access_token: config.authMethod === "oauth2" ? config.accessToken : null,
+      user_id: userId
     };
-    
-    // Add auth method specific fields
-    if (config.authMethod === "plain") {
-      configData = {
-        ...configData,
-        password: config.password,
-        // Set OAuth fields to null when using plain auth
-        client_id: null,
-        client_secret: null,
-        refresh_token: null,
-        access_token: null
-      };
-    } else {
-      // OAuth2 auth
-      configData = {
-        ...configData,
-        password: null, // Set password to null when using OAuth
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
-        refresh_token: config.refreshToken,
-        access_token: config.accessToken
-      };
-    }
     
     if (existingConfig && existingConfig.length > 0) {
       // Update existing config
       const { data, error } = await supabase
         .from('smtp_configs')
-        .update(configData)
+        .update(dbEntry)
         .eq('id', existingConfig[0].id)
         .select();
       
       if (error) throw error;
       return { success: true, data };
     } else {
-      // Insert new config with all required fields
+      // Insert new config
       const { data, error } = await supabase
         .from('smtp_configs')
-        .insert({
-          ...configData,
-          user_id: userId
-        })
+        .insert(dbEntry)
         .select();
       
       if (error) throw error;

@@ -162,24 +162,32 @@ export const saveEmailConfig = async (config: {
       .eq('user_id', userId)
       .limit(1);
     
-    const configData = {
+    // Prepare data based on auth method
+    let configData: Record<string, any> = {
       host: config.host,
       port: config.port,
       username: config.username,
       auth_method: config.authMethod,
       from_email: config.fromEmail,
       from_name: config.fromName,
-      // Only include auth-specific fields based on the method
-      ...(config.authMethod === "plain" 
-        ? { password: config.password } 
-        : {
-            client_id: config.clientId,
-            client_secret: config.clientSecret,
-            refresh_token: config.refreshToken,
-            access_token: config.accessToken
-          }
-      )
     };
+    
+    // Add auth method specific fields
+    if (config.authMethod === "plain") {
+      configData.password = config.password;
+      // Set OAuth fields to null when using plain auth
+      configData.client_id = null;
+      configData.client_secret = null;
+      configData.refresh_token = null;
+      configData.access_token = null;
+    } else {
+      // OAuth2 auth
+      configData.password = null; // Set password to null when using OAuth
+      configData.client_id = config.clientId;
+      configData.client_secret = config.clientSecret;
+      configData.refresh_token = config.refreshToken;
+      configData.access_token = config.accessToken;
+    }
     
     if (existingConfig && existingConfig.length > 0) {
       // Update existing config

@@ -169,37 +169,52 @@ export type Database = {
       }
       smtp_configs: {
         Row: {
+          access_token: string | null
+          auth_method: string
+          client_id: string | null
+          client_secret: string | null
           created_at: string
           from_email: string
           from_name: string | null
           host: string
           id: string
-          password: string
+          password: string | null
           port: string
+          refresh_token: string | null
           updated_at: string
           user_id: string
           username: string
         }
         Insert: {
+          access_token?: string | null
+          auth_method?: string
+          client_id?: string | null
+          client_secret?: string | null
           created_at?: string
           from_email: string
           from_name?: string | null
           host: string
           id?: string
-          password: string
+          password?: string | null
           port: string
+          refresh_token?: string | null
           updated_at?: string
           user_id: string
           username: string
         }
         Update: {
+          access_token?: string | null
+          auth_method?: string
+          client_id?: string | null
+          client_secret?: string | null
           created_at?: string
           from_email?: string
           from_name?: string | null
           host?: string
           id?: string
-          password?: string
+          password?: string | null
           port?: string
+          refresh_token?: string | null
           updated_at?: string
           user_id?: string
           username?: string

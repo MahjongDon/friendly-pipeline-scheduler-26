@@ -18,8 +18,9 @@ import { useAuth } from "@/contexts/AuthContext";
 interface ContactNote {
   id: string;
   text: string;
-  date: string;
+  created_at: string;
   contact_id: string;
+  user_id: string;
 }
 
 interface ContactProfileDialogProps {
@@ -241,7 +242,7 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
                       <div key={note.id} className="border p-3 rounded-md">
                         <p>{note.text}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(note.date || note.created_at).toLocaleString()}
+                          {new Date(note.created_at).toLocaleString()}
                         </p>
                       </div>
                     ))}

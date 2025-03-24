@@ -1,28 +1,136 @@
 
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { ArrowRight, Calendar, CheckCircle2, ListChecks, PieChart, Plus, Target, Users } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { 
+  ArrowRight, 
+  Calendar, 
+  CalendarPlus, 
+  CheckCircle2, 
+  ListChecks, 
+  Mail, 
+  PieChart, 
+  Plus, 
+  RefreshCw, 
+  Settings, 
+  Target, 
+  UserPlus, 
+  Users 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DashboardCard from "@/components/dashboard/DashboardCard";
-import TasksList from "@/components/tasks/TasksList";
+import SummaryWidget from "@/components/dashboard/SummaryWidget";
+import ActivityFeed from "@/components/dashboard/ActivityFeed";
+import TaskWidget from "@/components/dashboard/TaskWidget";
+import ContactsWidget from "@/components/dashboard/ContactsWidget";
+import CalendarWidget from "@/components/dashboard/CalendarWidget";
+import AnalyticsWidget from "@/components/dashboard/AnalyticsWidget";
+
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { initialTasks } from "@/types/task";
+import { sampleContacts } from "@/data/sampleContacts";
+import { 
+  sampleActivities, 
+  taskSummary, 
+  eventSummary, 
+  contactSummary, 
+  dealSummary,
+  getPriorityTasks,
+  getRecentContacts,
+  taskCompletionData,
+  salesPipelineData
+} from "@/data/dashboardData";
+import { Task } from "@/types/task";
+import { toast } from "sonner";
 
-// Sample data
-const pipelineData = [
-  { name: "Lead", value: 34 },
-  { name: "Qualified", value: 24 },
-  { name: "Proposal", value: 18 },
-  { name: "Negotiation", value: 12 },
-  { name: "Closed", value: 8 },
+// Sample calendar events
+const sampleEvents = [
+  {
+    id: "event-1",
+    title: "Team Meeting",
+    start: new Date(new Date().setHours(10, 0, 0, 0)),
+    end: new Date(new Date().setHours(11, 0, 0, 0)),
+    description: "Weekly team sync meeting",
+    location: "Conference Room A"
+  },
+  {
+    id: "event-2",
+    title: "Product Demo",
+    start: new Date(new Date().setHours(14, 0, 0, 0)),
+    end: new Date(new Date().setHours(15, 30, 0, 0)),
+    description: "Demo of new features for Acme Corp",
+    location: "Virtual Meeting"
+  },
+  {
+    id: "event-3",
+    title: "Client Call",
+    start: new Date(new Date().setDate(new Date().getDate() + 1)),
+    end: new Date(new Date().setDate(new Date().getDate() + 1)),
+    allDay: true,
+    description: "Follow-up call with potential client"
+  },
+  {
+    id: "event-4",
+    title: "Marketing Review",
+    start: new Date(new Date().setDate(new Date().getDate() + 2).setHours(13, 0, 0, 0)),
+    end: new Date(new Date().setDate(new Date().getDate() + 2).setHours(14, 0, 0, 0)),
+    description: "Review Q3 marketing campaign results"
+  },
+  {
+    id: "event-5",
+    title: "Strategy Planning",
+    start: new Date(new Date().setDate(new Date().getDate() + 3).setHours(9, 0, 0, 0)),
+    end: new Date(new Date().setDate(new Date().getDate() + 3).setHours(12, 0, 0, 0)),
+    description: "Quarterly strategy planning session"
+  }
 ];
 
 const Index = () => {
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [timePeriod, setTimePeriod] = useState("week");
+  const [lastRefreshed, setLastRefreshed] = useState(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const isMobile = useIsMobile();
+
+  // Auto-refresh dashboard data every 5 minutes
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      refreshDashboard();
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => clearInterval(refreshInterval);
+  }, []);
+  
+  const refreshDashboard = () => {
+    setIsRefreshing(true);
+    
+    // Simulate data refresh - in a real app this would fetch new data
+    setTimeout(() => {
+      setLastRefreshed(new Date());
+      setIsRefreshing(false);
+      toast.success("Dashboard refreshed");
+    }, 1000);
+  };
+  
+  const handleCompleteTask = (taskId: string) => {
+    setTasks(tasks.map(task => 
+      task.id === taskId ? { ...task, completed: true } : task
+    ));
+    toast.success("Task marked as complete");
+  };
+  
+  const formatCurrency = (value: number | string) => {
+    return `$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  };
+  
+  const formatPercentage = (value: number | string) => {
+    return `${value}%`;
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -38,157 +146,148 @@ const Index = () => {
         <Header />
         
         <main className="p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold mb-1">Welcome back!</h1>
-            <p className="text-muted-foreground">Here's an overview of your CRM data and tasks.</p>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-semibold mb-1">Dashboard</h1>
+              <p className="text-muted-foreground">
+                Welcome back! Here's an overview of your CRM metrics
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-muted-foreground hidden sm:block">
+                Last updated: {lastRefreshed.toLocaleTimeString()}
+              </div>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={refreshDashboard}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+                Refresh
+              </Button>
+              
+              <Select defaultValue={timePeriod} onValueChange={setTimePeriod}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="quarter">This Quarter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
+          {/* Quick Action Buttons */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <Button variant="outline" className="flex-col h-20 space-y-1" onClick={() => navigate("/tasks")}>
+              <ListChecks className="h-5 w-5" />
+              <span>New Task</span>
+            </Button>
+            <Button variant="outline" className="flex-col h-20 space-y-1" onClick={() => navigate("/contacts")}>
+              <UserPlus className="h-5 w-5" />
+              <span>New Contact</span>
+            </Button>
+            <Button variant="outline" className="flex-col h-20 space-y-1" onClick={() => navigate("/calendar")}>
+              <CalendarPlus className="h-5 w-5" />
+              <span>New Event</span>
+            </Button>
+            <Button variant="outline" className="flex-col h-20 space-y-1" onClick={() => navigate("/email")}>
+              <Mail className="h-5 w-5" />
+              <span>New Email</span>
+            </Button>
+          </div>
+          
+          {/* Summary Widgets */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <DashboardCard title="Active Leads" icon={<Users className="h-5 w-5" />}>
-              <div className="flex items-end">
-                <span className="text-3xl font-semibold">94</span>
-                <span className="text-sm text-emerald-500 ml-2 mb-1">+12% this month</span>
-              </div>
-              <div className="mt-2">
-                <Button variant="link" size="sm" className="p-0 h-auto flex items-center" asChild>
-                  <Link to="/contacts">
-                    View all leads <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                  </Link>
-                </Button>
-              </div>
-            </DashboardCard>
+            <SummaryWidget 
+              title="Active Leads" 
+              value={contactSummary.totalContacts} 
+              change={12}
+              description="Total active contacts"
+              icon={<Users className="h-5 w-5" />}
+            />
             
-            <DashboardCard title="Pipeline Value" icon={<PieChart className="h-5 w-5" />}>
-              <div className="flex items-end">
-                <span className="text-3xl font-semibold">$126.5k</span>
-                <span className="text-sm text-emerald-500 ml-2 mb-1">+5% this week</span>
-              </div>
-              <div className="mt-2">
-                <Button variant="link" size="sm" className="p-0 h-auto flex items-center" asChild>
-                  <Link to="/pipeline">
-                    View pipeline <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                  </Link>
-                </Button>
-              </div>
-            </DashboardCard>
+            <SummaryWidget 
+              title="Pipeline Value" 
+              value={dealSummary.totalValue} 
+              change={5}
+              description="Total deal value"
+              icon={<PieChart className="h-5 w-5" />}
+              formatter={formatCurrency}
+            />
             
-            <DashboardCard title="Pending Tasks" icon={<ListChecks className="h-5 w-5" />}>
-              <div className="flex items-end">
-                <span className="text-3xl font-semibold">28</span>
-                <span className="text-sm text-orange-500 ml-2 mb-1">12 due today</span>
-              </div>
-              <div className="mt-2">
-                <Button variant="link" size="sm" className="p-0 h-auto flex items-center" asChild>
-                  <Link to="/tasks">
-                    View all tasks <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                  </Link>
-                </Button>
-              </div>
-            </DashboardCard>
+            <SummaryWidget 
+              title="Task Completion" 
+              value={taskSummary.completionRate} 
+              description="Tasks completed"
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              formatter={formatPercentage}
+            />
             
-            <DashboardCard title="Meetings Today" icon={<Calendar className="h-5 w-5" />}>
-              <div className="flex items-end">
-                <span className="text-3xl font-semibold">4</span>
-                <span className="text-sm text-slate-500 ml-2 mb-1">Next in 45m</span>
-              </div>
-              <div className="mt-2">
-                <Button variant="link" size="sm" className="p-0 h-auto flex items-center" asChild>
-                  <Link to="/calendar">
-                    View calendar <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                  </Link>
-                </Button>
-              </div>
-            </DashboardCard>
+            <SummaryWidget 
+              title="Win Rate" 
+              value={dealSummary.winRate} 
+              change={3.2}
+              description="Deals won vs. lost"
+              icon={<Target className="h-5 w-5" />}
+              formatter={formatPercentage}
+            />
           </div>
           
+          {/* Analytics Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <DashboardCard title="Pipeline Overview" description="Deal progress by stage">
-              <div className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={pipelineData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                    <YAxis axisLine={false} tickLine={false} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "white", 
-                        borderRadius: "0.5rem",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
-                      }} 
-                    />
-                    <Bar 
-                      dataKey="value" 
-                      fill="rgba(59, 130, 246, 0.8)" 
-                      radius={[4, 4, 0, 0]} 
-                      barSize={40} 
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </DashboardCard>
+            <AnalyticsWidget 
+              title="Task Completion" 
+              description="Daily task progress for the week" 
+              data={taskCompletionData}
+              type="bar"
+              dataKeys={["completed", "pending"]}
+              colors={["#10b981", "#f59e0b"]}
+            />
             
-            <DashboardCard title="Recent Activity">
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
-                    <Target className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-medium">New deal created</p>
-                    <p className="text-sm text-muted-foreground">
-                      Website redesign project for Acme Inc. worth $12,000
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0">
-                    <CheckCircle2 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Task completed</p>
-                    <p className="text-sm text-muted-foreground">
-                      Sarah completed "Send proposal to GlobalTech"
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">4 hours ago</p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 flex-shrink-0">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-medium">New lead added</p>
-                    <p className="text-sm text-muted-foreground">
-                      New lead: John Smith from InnovateTech
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">Yesterday</p>
-                  </div>
-                </div>
-                
-                <Button variant="ghost" size="sm" className="w-full mt-2" asChild>
-                  <Link to="/pipeline">View all activity</Link>
-                </Button>
-              </div>
-            </DashboardCard>
+            <AnalyticsWidget 
+              title="Sales Pipeline" 
+              description="Current deals by stage" 
+              data={salesPipelineData}
+              type="bar"
+              dataKeys={["value"]}
+              colors={["#3b82f6"]}
+            />
           </div>
           
+          {/* Activity Widgets */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+            <TaskWidget 
+              tasks={getPriorityTasks(tasks)}
+              onComplete={handleCompleteTask}
+              onViewDetails={(id) => navigate(`/tasks?id=${id}`)}
+            />
+            
+            <CalendarWidget 
+              events={sampleEvents}
+              onAddEvent={() => navigate("/calendar?action=add")}
+              onEventClick={(id) => navigate(`/calendar?event=${id}`)}
+            />
+            
+            <ContactsWidget 
+              contacts={getRecentContacts(sampleContacts)}
+              onAddContact={() => navigate("/contacts?action=add")}
+              onContactClick={(id) => navigate(`/contacts?id=${id}`)}
+            />
+          </div>
+          
+          {/* Activity Feed */}
           <div className="grid grid-cols-1 gap-6">
-            <DashboardCard 
-              title="Today's Tasks" 
-              icon={
-                <Link to="/tasks">
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-2" /> New Task
-                  </Button>
-                </Link>
-              }
-            >
-              <TasksList />
-            </DashboardCard>
+            <ActivityFeed 
+              activities={sampleActivities}
+              maxItems={5}
+            />
           </div>
         </main>
       </div>

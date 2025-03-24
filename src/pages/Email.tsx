@@ -1,316 +1,121 @@
 
 import React, { useState } from "react";
-import { Inbox, Send, Archive, Star, Trash2, File, Search, Mail, MoreHorizontal, Settings, Link, AlertCircle } from "lucide-react";
-import { Link as RouterLink } from "react-router-dom";
-import { toast } from "sonner";
+import { Check, Plus, Search, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import ComposeDialog from "@/components/email/ComposeDialog";
+import { toast } from "sonner";
+import { EmailTemplate } from "@/types/emailAutomation";
+import { sampleTemplates } from "@/data/sampleEmailData";
 import EmailSetupDialog from "@/components/email/EmailSetupDialog";
 import { emailServices } from "@/types/emailAutomation";
 
-interface Email {
-  id: string;
-  from: {
-    name: string;
-    email: string;
-  };
-  to: {
-    name: string;
-    email: string;
-  };
-  subject: string;
-  preview: string;
-  date: string;
-  read: boolean;
-  starred: boolean;
-  hasAttachment: boolean;
-  folder: "inbox" | "sent" | "archive" | "draft" | "trash";
-}
-
-const sampleEmails: Email[] = [
+// Sample email data
+const emails = [
   {
     id: "email-1",
-    from: {
-      name: "John Smith",
-      email: "john.smith@acme.com",
-    },
-    to: {
-      name: "Me",
-      email: "user@example.com",
-    },
-    subject: "Meeting Proposal - Website Redesign Project",
-    preview: "Hi there, I'd like to schedule a meeting to discuss the website redesign project for Acme Corp...",
-    date: "2023-12-10T10:23:00",
-    read: false,
-    starred: true,
-    hasAttachment: true,
+    from: "John Smith <john.smith@acme.com>",
+    to: "you@company.com",
+    subject: "Meeting tomorrow",
+    body: "Hi there,\n\nJust confirming our meeting tomorrow at 2pm.\n\nBest,\nJohn",
+    date: "2023-12-10T14:30:00",
+    read: true,
     folder: "inbox",
+    important: false,
   },
   {
     id: "email-2",
-    from: {
-      name: "Sarah Johnson",
-      email: "sarah.j@globex.com",
-    },
-    to: {
-      name: "Me",
-      email: "user@example.com",
-    },
-    subject: "Marketing Campaign Proposal",
-    preview: "Please find attached the proposal for the upcoming marketing campaign as discussed...",
-    date: "2023-12-09T14:56:00",
-    read: true,
-    starred: false,
-    hasAttachment: true,
+    from: "Sarah Johnson <sarah.j@globex.com>",
+    to: "you@company.com",
+    subject: "Proposal Review",
+    body: "Hello,\n\nI've reviewed the proposal and have some feedback. Can we discuss this afternoon?\n\nRegards,\nSarah",
+    date: "2023-12-10T10:15:00",
+    read: false,
     folder: "inbox",
+    important: true,
   },
   {
     id: "email-3",
-    from: {
-      name: "CRM Suite",
-      email: "notifications@crmsuite.com",
-    },
-    to: {
-      name: "Me",
-      email: "user@example.com",
-    },
-    subject: "Your Weekly Summary Report",
-    preview: "Here's your weekly summary of activities in your CRM: 12 new leads, 5 deals progressed...",
-    date: "2023-12-08T08:00:00",
+    from: "Michael Brown <m.brown@wayne.com>",
+    to: "you@company.com",
+    subject: "Invoice #1234",
+    body: "Dear Customer,\n\nPlease find attached the invoice for your recent purchase.\n\nThank you for your business.\n\nMichael Brown\nAccounting Department",
+    date: "2023-12-09T16:45:00",
     read: true,
-    starred: false,
-    hasAttachment: false,
     folder: "inbox",
+    important: false,
   },
   {
     id: "email-4",
-    from: {
-      name: "Me",
-      email: "user@example.com",
-    },
-    to: {
-      name: "Robert Chen",
-      email: "robert.chen@oscorp.com",
-    },
-    subject: "Re: Software Implementation Timeline",
-    preview: "Thank you for your patience. I've reviewed the timeline and would like to suggest...",
-    date: "2023-12-07T16:30:00",
+    from: "Jessica Lee <jessica@stark.com>",
+    to: "you@company.com",
+    subject: "Product Inquiry",
+    body: "Hi,\n\nI'm interested in learning more about your services. Do you offer consulting?\n\nThanks,\nJessica",
+    date: "2023-12-08T09:22:00",
     read: true,
-    starred: false,
-    hasAttachment: false,
+    folder: "inbox",
+    important: false,
+  },
+  {
+    id: "email-5",
+    from: "you@company.com",
+    to: "robert.chen@oscorp.com",
+    subject: "Following up on our conversation",
+    body: "Hi Robert,\n\nIt was great speaking with you yesterday. I'm following up as promised with more information about our services.\n\nBest regards,\nYou",
+    date: "2023-12-07T15:30:00",
+    read: true,
     folder: "sent",
+    important: false,
   },
 ];
 
-const EmailItem: React.FC<{ 
-  email: Email;
-  onToggleRead: (id: string) => void;
-  onToggleStar: (id: string) => void;
-  onReply?: (email: Email) => void;
-  onForward?: (email: Email) => void;
-  onDelete?: (id: string) => void;
-}> = ({ email, onToggleRead, onToggleStar, onReply, onForward, onDelete }) => {
-  const formattedDate = new Date(email.date).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
-  
-  return (
-    <div 
-      className={cn(
-        "flex items-center px-4 py-3 border-b hover:bg-gray-50 transition-colors cursor-pointer",
-        !email.read && "bg-blue-50/40"
-      )}
-      onClick={() => onToggleRead(email.id)}
-    >
-      <div className="flex items-center gap-3 w-64">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleStar(email.id);
-          }}
-        >
-          <Star className={cn(
-            "h-4 w-4",
-            email.starred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"
-          )} />
-        </Button>
-        
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-          {email.folder === "sent" ? (
-            <Send className="h-4 w-4 text-primary" />
-          ) : (
-            email.from.name.charAt(0).toUpperCase()
-          )}
-        </div>
-        
-        <div className="font-medium truncate">
-          {email.folder === "sent" ? email.to.name : email.from.name}
-        </div>
-      </div>
-      
-      <div className="flex-1 flex flex-col">
-        <span className={cn("font-medium", email.read && "font-normal")}>
-          {email.subject}
-        </span>
-        <span className="text-sm text-muted-foreground truncate">{email.preview}</span>
-      </div>
-      
-      <div className="flex items-center gap-2 shrink-0 ml-4">
-        {email.hasAttachment && (
-          <File className="h-4 w-4 text-muted-foreground" />
-        )}
-        
-        <span className="text-sm text-muted-foreground">{formattedDate}</span>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={(e) => {
-              e.stopPropagation();
-              if (onReply) onReply(email);
-            }}>
-              Reply
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => {
-              e.stopPropagation();
-              if (onForward) onForward(email);
-            }}>
-              Forward
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => {
-              e.stopPropagation();
-              onToggleRead(email.id);
-            }}>
-              Mark as {email.read ? "unread" : "read"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              className="text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onDelete) onDelete(email.id);
-              }}
-            >
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
-  );
-};
-
-const Email: React.FC = () => {
+const Email = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState("inbox");
   const [searchQuery, setSearchQuery] = useState("");
-  const [emails, setEmails] = useState(sampleEmails);
-  const [currentFolder, setCurrentFolder] = useState<"inbox" | "sent" | "archive" | "draft" | "trash">("inbox");
+  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const isMobile = useIsMobile();
   
   const filteredEmails = emails
-    .filter(email => email.folder === currentFolder)
+    .filter(email => email.folder === selectedFolder)
     .filter(email => 
-      email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      email.preview.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      email.from.name.toLowerCase().includes(searchQuery.toLowerCase())
+      email.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      email.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.body.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  
-  const handleToggleRead = (id: string) => {
-    setEmails(emails.map(email => 
-      email.id === id ? { ...email, read: !email.read } : email
-    ));
-  };
-  
-  const handleToggleStar = (id: string) => {
-    setEmails(emails.map(email => 
-      email.id === id ? { ...email, starred: !email.starred } : email
-    ));
-  };
-  
-  const handleDeleteEmail = (id: string) => {
-    setEmails(emails.map(email => 
-      email.id === id ? { ...email, folder: "trash" } : email
-    ));
-    toast.success("Email moved to trash");
-  };
-  
-  const handleReplyEmail = (email: Email) => {
-    setIsComposeOpen(true);
-    // Implementation for reply would go here
-    toast.info("Reply functionality to be implemented with email service integration");
-  };
-  
-  const handleForwardEmail = (email: Email) => {
-    setIsComposeOpen(true);
-    // Implementation for forward would go here
-    toast.info("Forward functionality to be implemented with email service integration");
-  };
-  
-  const handleSendEmail = (email: {
-    to: string;
-    subject: string;
-    body: string;
-  }) => {
-    // Here you would normally send the email via an email service API
-    // For now, we'll simulate adding it to the sent folder
-    const newEmail: Email = {
-      id: `email-${Date.now()}`,
-      from: {
-        name: "Me",
-        email: "user@example.com"
-      },
-      to: {
-        name: email.to.split('@')[0],
-        email: email.to
-      },
-      subject: email.subject,
-      preview: email.body.substring(0, 100) + (email.body.length > 100 ? '...' : ''),
-      date: new Date().toISOString(),
-      read: true,
-      starred: false,
-      hasAttachment: false,
-      folder: "sent"
-    };
     
-    setEmails([newEmail, ...emails]);
-    
-    // Show success message and prompt about email service setup
-    toast.success("Email sent successfully (simulation)");
-    setTimeout(() => {
-      toast({
-        title: "Email Service Setup Needed",
-        description: "To send real emails, set up an email service integration.",
-        action: <Button size="sm" variant="outline" onClick={() => setIsSetupOpen(true)}>Setup</Button>
-      });
-    }, 1500);
+  const handleDeleteEmail = (emailId: string) => {
+    // In a real app, this would delete from the database
+    toast.success("Email deleted successfully");
+  };
+  
+  const handleSendEmail = (to: string, subject: string, body: string) => {
+    // In a real app, this would send via an email API
+    toast.success("Email sent successfully");
+    setIsComposeOpen(false);
+  };
+  
+  const handleMarkAsRead = (emailId: string) => {
+    // In a real app, this would mark as read in the database
+    toast.success("Email marked as read");
+  };
+  
+  const handleMarkAsImportant = (emailId: string) => {
+    // In a real app, this would mark as important in the database
+    toast.success("Email marked as important");
   };
 
   return (
@@ -326,137 +131,215 @@ const Email: React.FC = () => {
       >
         <Header />
         
-        <main className="flex h-[calc(100vh-64px)]">
-          <div className="w-56 border-r bg-white">
-            <div className="p-4 space-y-2">
-              <Button className="w-full" onClick={() => setIsComposeOpen(true)}>
-                <Mail className="h-4 w-4 mr-2" /> Compose
-              </Button>
-              <Button variant="outline" className="w-full" asChild>
-                <RouterLink to="/email-automation">
-                  <Settings className="h-4 w-4 mr-2" /> Email Automation
-                </RouterLink>
-              </Button>
-              <Button variant="ghost" className="w-full text-amber-600" onClick={() => setIsSetupOpen(true)}>
-                <AlertCircle className="h-4 w-4 mr-2" /> Setup Email Service
-              </Button>
+        <main className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-semibold mb-1">Email</h1>
+              <p className="text-muted-foreground">Manage your email communications</p>
             </div>
             
-            <div className="space-y-1 px-2">
+            <div className="flex items-center gap-3">
               <Button 
-                variant={currentFolder === "inbox" ? "secondary" : "ghost"} 
-                className="w-full justify-start"
-                onClick={() => setCurrentFolder("inbox")}
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsSetupOpen(true)}
               >
-                <Inbox className="h-4 w-4 mr-2" /> 
-                Inbox
-                <Badge className="ml-auto">{emails.filter(e => e.folder === "inbox" && !e.read).length}</Badge>
+                Email Settings
               </Button>
-              
-              <Button 
-                variant={currentFolder === "sent" ? "secondary" : "ghost"} 
-                className="w-full justify-start"
-                onClick={() => setCurrentFolder("sent")}
-              >
-                <Send className="h-4 w-4 mr-2" /> Sent
-              </Button>
-              
-              <Button 
-                variant={currentFolder === "archive" ? "secondary" : "ghost"} 
-                className="w-full justify-start"
-                onClick={() => setCurrentFolder("archive")}
-              >
-                <Archive className="h-4 w-4 mr-2" /> Archive
-              </Button>
-              
-              <Button 
-                variant={currentFolder === "trash" ? "secondary" : "ghost"} 
-                className="w-full justify-start"
-                onClick={() => setCurrentFolder("trash")}
-              >
-                <Trash2 className="h-4 w-4 mr-2" /> Trash
-              </Button>
-            </div>
-            
-            <div className="px-4 py-2 mt-6">
-              <h3 className="text-sm font-medium text-muted-foreground">Labels</h3>
-            </div>
-            
-            <div className="space-y-1 px-2">
-              <Button variant="ghost" className="w-full justify-start">
-                <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span> 
-                Work
-              </Button>
-              
-              <Button variant="ghost" className="w-full justify-start">
-                <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span> 
-                Clients
-              </Button>
-              
-              <Button variant="ghost" className="w-full justify-start">
-                <span className="w-2 h-2 rounded-full bg-purple-500 mr-2"></span> 
-                Personal
+              <Button size="sm" onClick={() => setIsComposeOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Compose
               </Button>
             </div>
           </div>
           
-          <div className="flex-1 flex flex-col">
-            <div className="border-b p-4 bg-white flex items-center justify-between">
-              <div className="relative max-w-md">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search emails..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 max-w-md"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm">
-                  <Inbox className="h-4 w-4 mr-1" /> Primary
-                </Button>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Email Folders */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="mb-4">
+                  <Button 
+                    className="w-full mb-3" 
+                    onClick={() => setIsComposeOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Compose
+                  </Button>
+                </div>
+                <div className="space-y-1">
+                  <Button 
+                    variant={selectedFolder === "inbox" ? "default" : "ghost"} 
+                    className="w-full justify-start"
+                    onClick={() => setSelectedFolder("inbox")}
+                  >
+                    Inbox (4)
+                  </Button>
+                  <Button 
+                    variant={selectedFolder === "sent" ? "default" : "ghost"} 
+                    className="w-full justify-start"
+                    onClick={() => setSelectedFolder("sent")}
+                  >
+                    Sent (1)
+                  </Button>
+                  <Button 
+                    variant={selectedFolder === "drafts" ? "default" : "ghost"} 
+                    className="w-full justify-start"
+                    onClick={() => setSelectedFolder("drafts")}
+                  >
+                    Drafts (0)
+                  </Button>
+                  <Button 
+                    variant={selectedFolder === "trash" ? "default" : "ghost"} 
+                    className="w-full justify-start"
+                    onClick={() => setSelectedFolder("trash")}
+                  >
+                    Trash (0)
+                  </Button>
+                </div>
               </div>
             </div>
             
-            <div className="flex-1 overflow-auto">
-              {filteredEmails.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                  <Mail className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium">No emails found</h3>
-                  <p className="text-muted-foreground max-w-sm">
-                    There are no emails in this folder or matching your search.
-                  </p>
+            {/* Email List & Detail */}
+            <div className="lg:col-span-3">
+              <div className="bg-white rounded-lg shadow">
+                <div className="p-4 border-b">
+                  <div className="flex gap-3">
+                    <div className="relative flex-grow">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input 
+                        placeholder="Search emails..." 
+                        className="pl-10"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <Select defaultValue="all">
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Filter" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Emails</SelectItem>
+                        <SelectItem value="unread">Unread</SelectItem>
+                        <SelectItem value="important">Important</SelectItem>
+                        <SelectItem value="recent">Recent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              ) : (
-                filteredEmails.map((email) => (
-                  <EmailItem 
-                    key={email.id} 
-                    email={email} 
-                    onToggleRead={handleToggleRead}
-                    onToggleStar={handleToggleStar}
-                    onReply={handleReplyEmail}
-                    onForward={handleForwardEmail}
-                    onDelete={handleDeleteEmail}
-                  />
-                ))
-              )}
+                
+                <div className="flex h-[600px]">
+                  {/* Email List */}
+                  <div className={cn(
+                    "border-r w-full overflow-auto",
+                    selectedEmail && !isMobile ? "w-1/3" : "w-full"
+                  )}>
+                    {filteredEmails.length === 0 ? (
+                      <div className="p-6 text-center text-muted-foreground">
+                        No emails found
+                      </div>
+                    ) : (
+                      filteredEmails.map(email => (
+                        <div 
+                          key={email.id}
+                          className={cn(
+                            "border-b p-4 cursor-pointer hover:bg-gray-50",
+                            !email.read && "bg-blue-50 hover:bg-blue-50",
+                            selectedEmail === email.id && "bg-gray-100 hover:bg-gray-100"
+                          )}
+                          onClick={() => setSelectedEmail(email.id)}
+                        >
+                          <div className="flex justify-between mb-1">
+                            <div className="font-medium truncate">
+                              {email.folder === "sent" ? `To: ${email.to}` : email.from.split("<")[0]}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(email.date).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="font-medium mb-1 truncate">
+                            {email.subject}
+                          </div>
+                          <div className="text-sm text-muted-foreground truncate">
+                            {email.body.split('\n')[0]}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  
+                  {/* Email Detail */}
+                  {selectedEmail && (!isMobile || !selectedEmail) && (
+                    <div className={cn(
+                      "p-6 overflow-auto",
+                      !isMobile ? "w-2/3" : "w-full"
+                    )}>
+                      {emails.find(e => e.id === selectedEmail) && (
+                        <>
+                          <div className="flex justify-between items-start mb-6">
+                            <div>
+                              <h2 className="text-xl font-semibold mb-2">
+                                {emails.find(e => e.id === selectedEmail)?.subject}
+                              </h2>
+                              <div className="text-sm text-muted-foreground mb-1">
+                                <span className="font-medium">From:</span> {emails.find(e => e.id === selectedEmail)?.from}
+                              </div>
+                              <div className="text-sm text-muted-foreground mb-1">
+                                <span className="font-medium">To:</span> {emails.find(e => e.id === selectedEmail)?.to}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                <span className="font-medium">Date:</span> {new Date(emails.find(e => e.id === selectedEmail)?.date || "").toLocaleString()}
+                              </div>
+                            </div>
+                            <div className="flex">
+                              {emails.find(e => e.id === selectedEmail)?.folder !== "sent" && (
+                                <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="mr-2"
+                                    onClick={() => handleMarkAsRead(selectedEmail)}
+                                  >
+                                    <Check className="h-4 w-4 mr-2" />
+                                    Mark as Read
+                                  </Button>
+                                </>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleDeleteEmail(selectedEmail)}
+                              >
+                                <Trash className="h-4 w-4 mr-2" />
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="whitespace-pre-wrap">
+                            {emails.find(e => e.id === selectedEmail)?.body}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
+          
+          {/* Compose Email Dialog */}
+          <ComposeDialog
+            isOpen={isComposeOpen}
+            onOpenChange={setIsComposeOpen}
+            onSend={handleSendEmail}
+            templates={sampleTemplates}
+          />
+          
+          {/* Email Setup Dialog */}
+          <EmailSetupDialog
+            isOpen={isSetupOpen}
+            onOpenChange={setIsSetupOpen}
+            emailServices={emailServices}
+          />
         </main>
       </div>
-      
-      <ComposeDialog 
-        isOpen={isComposeOpen} 
-        onOpenChange={setIsComposeOpen}
-        onSend={handleSendEmail}
-      />
-      
-      <EmailSetupDialog
-        isOpen={isSetupOpen}
-        onOpenChange={setIsSetupOpen}
-        emailServices={emailServices}
-      />
     </div>
   );
 };

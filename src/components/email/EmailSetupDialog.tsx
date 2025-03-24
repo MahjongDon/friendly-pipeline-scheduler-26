@@ -1,6 +1,6 @@
 
-import React from "react";
-import { Mail, Link, AlertCircle } from "lucide-react";
+import React, { useState } from "react";
+import { Mail, Link, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,7 +18,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmailService } from "@/types/emailAutomation";
+import { toast } from "sonner";
+import EmailServiceConfig from "./EmailServiceConfig";
 
 interface EmailSetupDialogProps {
   isOpen: boolean;
@@ -31,6 +34,36 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
   onOpenChange,
   emailServices,
 }) => {
+  const [services, setServices] = useState<EmailService[]>(emailServices);
+  const [selectedService, setSelectedService] = useState<EmailService | null>(null);
+  const [activeTab, setActiveTab] = useState("services");
+  
+  const handleConfigureService = (service: EmailService) => {
+    setSelectedService(service);
+    setActiveTab("configure");
+  };
+  
+  const handleSaveConfiguration = (service: EmailService, config: any) => {
+    // Here you would normally save the configuration to your backend
+    console.log("Saving configuration for", service.name, config);
+    
+    // Update the local state
+    const updatedServices = services.map(s => 
+      s.name === service.name ? service : s
+    );
+    
+    setServices(updatedServices);
+    setSelectedService(null);
+    setActiveTab("services");
+    
+    toast.success(`${service.name} configured successfully`);
+  };
+  
+  const handleCancelConfiguration = () => {
+    setSelectedService(null);
+    setActiveTab("services");
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px]">
@@ -41,55 +74,85 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
-            <div className="flex items-start">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 mr-2" />
-              <div>
-                <h3 className="font-medium text-amber-800">Email Sending Setup Required</h3>
-                <p className="text-sm text-amber-700 mt-1">
-                  Currently, the application is using simulated email sending. To send real emails,
-                  you'll need to integrate with an email service provider.
-                </p>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
+          <TabsList>
+            <TabsTrigger value="services">Email Services</TabsTrigger>
+            <TabsTrigger value="configure" disabled={!selectedService}>
+              Configure Service
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="services">
+            <div className="py-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
+                <div className="flex items-start">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 mr-2" />
+                  <div>
+                    <h3 className="font-medium text-amber-800">Email Sending Setup Required</h3>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Currently, the application is using simulated email sending. To send real emails,
+                      you'll need to integrate with an email service provider.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-medium mb-4">Available Email Services</h3>
+              
+              <div className="grid gap-4 sm:grid-cols-2">
+                {services.map((service) => (
+                  <Card key={service.name}>
+                    <CardHeader>
+                      <CardTitle>{service.name}</CardTitle>
+                      <CardDescription>{service.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm">
+                        Status: <span className={service.isConfigured ? "text-green-600 flex items-center" : "text-amber-600"}>
+                          {service.isConfigured ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Connected
+                            </>
+                          ) : "Not configured"}
+                        </span>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button 
+                        variant={service.isConfigured ? "outline" : "default"} 
+                        className="w-full"
+                        onClick={() => handleConfigureService(service)}
+                      >
+                        {service.isConfigured ? "Edit Configuration" : `Configure ${service.name}`}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+              
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-2">Next Steps</h3>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  <li>Choose an email service provider from the options above</li>
+                  <li>Sign up for an account if you don't already have one</li>
+                  <li>Configure your API keys or SMTP settings</li>
+                  <li>Complete the integration setup</li>
+                </ul>
               </div>
             </div>
-          </div>
-
-          <h3 className="text-lg font-medium mb-4">Available Email Services</h3>
+          </TabsContent>
           
-          <div className="grid gap-4 sm:grid-cols-2">
-            {emailServices.map((service) => (
-              <Card key={service.name}>
-                <CardHeader>
-                  <CardTitle>{service.name}</CardTitle>
-                  <CardDescription>{service.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm">
-                    Status: <span className={service.isConfigured ? "text-green-600" : "text-amber-600"}>
-                      {service.isConfigured ? "Connected" : "Not configured"}
-                    </span>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="outline" className="w-full">
-                    Configure {service.name}
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-          
-          <div className="mt-6">
-            <h3 className="text-lg font-medium mb-2">Next Steps</h3>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>Choose an email service provider from the options above</li>
-              <li>Sign up for an account if you don't already have one</li>
-              <li>Configure your API keys or SMTP settings</li>
-              <li>Complete the integration setup</li>
-            </ul>
-          </div>
-        </div>
+          <TabsContent value="configure">
+            {selectedService && (
+              <EmailServiceConfig
+                service={selectedService}
+                onSave={handleSaveConfiguration}
+                onCancel={handleCancelConfiguration}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
         
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Session, User } from "@supabase/supabase-js";
+import { Session, User, Provider } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -12,6 +12,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any; data: any }>;
   signOut: () => Promise<void>;
+  signInWithProvider: (provider: Provider) => Promise<{ error: any }>;
   resendVerificationEmail: (email?: string) => Promise<{ error: any }>;
 };
 
@@ -88,6 +89,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signInWithProvider = async (provider: Provider) => {
+    try {
+      // Get the current URL of the application for redirect
+      const redirectUrl = window.location.origin + "/auth";
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: redirectUrl,
+        }
+      });
+      
+      if (error) {
+        console.error(`Error signing in with ${provider}:`, error);
+        toast.error(`Failed to sign in with ${provider}`);
+      }
+      
+      return { error };
+    } catch (error) {
+      console.error(`Unexpected error signing in with ${provider}:`, error);
+      return { error };
+    }
+  };
+
   const resendVerificationEmail = async (email?: string) => {
     try {
       // Get the current URL of the application for redirect
@@ -144,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isVerified,
       signIn, 
       signUp,
+      signInWithProvider,
       resendVerificationEmail, 
       signOut 
     }}>

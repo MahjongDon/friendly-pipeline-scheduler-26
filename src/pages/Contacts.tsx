@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { PlusCircle, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +90,7 @@ const Contacts: React.FC = () => {
       setContacts([...contacts, newContact]);
       toast.success(`Contact ${formData.name} added successfully`);
     }
+    setIsAddContactDialogOpen(false);
   };
 
   return (
@@ -171,6 +173,8 @@ const Contacts: React.FC = () => {
             onOpenChange={setIsProfileDialogOpen}
             contact={currentContact || null}
             onEdit={handleEditContact}
+            activeTab={activeProfileTab}
+            setActiveTab={setActiveProfileTab}
           />
         </main>
       </div>

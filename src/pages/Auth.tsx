@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,19 +7,22 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Mail, AlertCircle, Loader2, Github, Globe } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Separator } from "@/components/ui/separator";
+import { Provider } from "@supabase/supabase-js";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [providerLoading, setProviderLoading] = useState<Provider | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [resendingEmail, setResendingEmail] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signIn, signUp, resendVerificationEmail, isVerified } = useAuth();
+  const { user, signIn, signUp, signInWithProvider, resendVerificationEmail, isVerified } = useAuth();
   
   const from = location.state?.from?.pathname || "/";
   
@@ -84,6 +88,18 @@ const Auth = () => {
       toast.error("An error occurred during login");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProviderSignIn = async (provider: Provider) => {
+    setProviderLoading(provider);
+    try {
+      await signInWithProvider(provider);
+      // No need to handle navigation here as it will redirect to the provider's auth page
+    } catch (error) {
+      console.error(`Error signing in with ${provider}:`, error);
+      toast.error(`Failed to sign in with ${provider}`);
+      setProviderLoading(null);
     }
   };
 
@@ -239,6 +255,46 @@ const Auth = () => {
                     ) : "Login"}
                   </Button>
                 </form>
+                
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline" 
+                    type="button" 
+                    onClick={() => handleProviderSignIn('google')}
+                    disabled={providerLoading !== null}
+                  >
+                    {providerLoading === 'google' ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Globe className="mr-2 h-4 w-4" />
+                    )}
+                    Google
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    type="button"
+                    onClick={() => handleProviderSignIn('github')}
+                    disabled={providerLoading !== null}
+                  >
+                    {providerLoading === 'github' ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Github className="mr-2 h-4 w-4" />
+                    )}
+                    GitHub
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -287,6 +343,46 @@ const Auth = () => {
                     ) : "Create Account"}
                   </Button>
                 </form>
+                
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline" 
+                    type="button" 
+                    onClick={() => handleProviderSignIn('google')}
+                    disabled={providerLoading !== null}
+                  >
+                    {providerLoading === 'google' ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Globe className="mr-2 h-4 w-4" />
+                    )}
+                    Google
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    type="button"
+                    onClick={() => handleProviderSignIn('github')}
+                    disabled={providerLoading !== null}
+                  >
+                    {providerLoading === 'github' ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Github className="mr-2 h-4 w-4" />
+                    )}
+                    GitHub
+                  </Button>
+                </div>
               </CardContent>
               <CardFooter className="flex justify-center">
                 <p className="text-sm text-muted-foreground">

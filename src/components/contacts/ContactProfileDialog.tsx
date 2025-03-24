@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Mail, Phone, Building2, CalendarClock, Tag, Edit, Plus, Save } from "lucide-react";
+import { Mail, Phone, Building2, CalendarClock, Tag, Edit, Plus } from "lucide-react";
 import { Contact } from "@/types/contact";
 import { toast } from "sonner";
 
@@ -22,20 +23,24 @@ interface ContactProfileDialogProps {
   onOpenChange: (open: boolean) => void;
   contact: Contact | null;
   onEdit: (contact: Contact) => void;
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
 }
 
 const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
   open,
   onOpenChange,
   contact,
-  onEdit
+  onEdit,
+  activeTab = "details",
+  setActiveTab
 }) => {
-  const [activeTab, setActiveTab] = useState("details");
+  const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [newNote, setNewNote] = useState("");
   const [campaign, setCampaign] = useState("");
   
-  // Reset state when dialog opens with a new contact
+  // Reset state when dialog opens with a new contact or tab changes
   useEffect(() => {
     if (open && contact) {
       // Reset the new note input and campaign input when the dialog opens
@@ -45,7 +50,12 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
       // Keep the notes state as is, as we want to persist notes between dialog openings
       // In a real app, you would fetch notes from a database here
     }
-  }, [open, contact]);
+
+    // Set internal tab state based on prop
+    if (activeTab) {
+      setInternalActiveTab(activeTab);
+    }
+  }, [open, contact, activeTab]);
 
   const handleAddNote = () => {
     if (!newNote.trim()) return;
@@ -69,7 +79,10 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
   };
   
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
+    setInternalActiveTab(value);
+    if (setActiveTab) {
+      setActiveTab(value);
+    }
   };
 
   // Safety check - don't render if contact is null
@@ -97,7 +110,7 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
           </div>
         </DialogHeader>
         
-        <Tabs defaultValue="details" value={activeTab} onValueChange={handleTabChange} className="mt-2">
+        <Tabs value={internalActiveTab} onValueChange={handleTabChange} className="mt-2">
           <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="notes">Notes</TabsTrigger>

@@ -35,7 +35,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [port, setPort] = useState("587"); // Default TLS port
   const [fromEmail, setFromEmail] = useState("");
   const [fromName, setFromName] = useState("");
-  const [authMethod, setAuthMethod] = useState<"plain" | "oauth2">("plain");
+  const [authMethod, setAuthMethod] = useState<"plain" | "oauth2">("oauth2"); // Default to OAuth2 since Gmail requires it
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [refreshToken, setRefreshToken] = useState("");
@@ -71,7 +71,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
             setUsername(config.username || "");
             setFromEmail(config.fromEmail || "");
             setFromName(config.fromName || "");
-            setAuthMethod((config.authMethod || "plain") as "plain" | "oauth2");
+            setAuthMethod((config.authMethod || "oauth2") as "plain" | "oauth2");
             
             // Auth method specific fields
             if (config.authMethod === "oauth2") {
@@ -222,7 +222,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           // Show cloud limitation message regardless when it comes to Gmail OAuth
           if (host.includes("gmail") && authMethod === "oauth2") {
             setCloudLimitation(true);
-            toast.error("Gmail SMTP connections often fail in serverless environments. We'll use the Gmail API instead.");
+            toast.info("Gmail SMTP connections often fail in serverless environments. We'll use the Gmail API instead.");
           } else {
             toast.error(testResult.message || "Failed to test email connection");
           }
@@ -327,19 +327,6 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           </Alert>
         )}
 
-        {service.name === "SMTP" && (
-          <Alert className="mb-4 bg-amber-50 border-amber-200 text-amber-800">
-            <AlertDescription>
-              <h4 className="font-medium mb-1">Configuration Tips</h4>
-              <ul className="text-sm list-disc pl-5 space-y-1">
-                <li>For Gmail, you must use OAuth2 authentication</li>
-                <li>We recommend port 587 for most reliable results</li>
-                <li>For Gmail specifically, we'll use the Gmail API instead of SMTP for better reliability</li>
-              </ul>
-            </AlertDescription>
-          </Alert>
-        )}
-          
         <form id="email-service-form" onSubmit={handleSave}>
           {service.name === "SMTP" ? (
             <SMTPConfigForm 

@@ -133,11 +133,22 @@ serve(async (req) => {
           const errorText = await tokenResponse.text();
           console.error("Token refresh failed:", tokenResponse.status, errorText);
           
-          // Check for common error patterns
+          let responseJson;
+          try {
+            responseJson = JSON.parse(errorText);
+          } catch (e) {
+            responseJson = null;
+          }
+
+          // More detailed error messaging based on the response
           if (tokenResponse.status === 401) {
             throw new Error("Invalid OAuth2 credentials. Please check your OAuth configuration and regenerate refresh tokens.");
-          } else if (tokenResponse.status === 400 && errorText.includes("invalid_grant")) {
-            throw new Error("OAuth refresh token has expired or been revoked. Please reconfigure Gmail OAuth.");
+          } else if (tokenResponse.status === 400) {
+            if (responseJson && responseJson.error === "invalid_grant") {
+              throw new Error("Your OAuth refresh token has expired or been revoked. Please reconfigure Gmail OAuth.");
+            } else {
+              throw new Error(`OAuth error: ${responseJson ? responseJson.error_description || responseJson.error : errorText}`);
+            }
           } else {
             throw new Error(`Failed to refresh access token: ${tokenResponse.status} - ${errorText}`);
           }
@@ -220,27 +231,42 @@ serve(async (req) => {
         });
         
         const responseStatus = gmailResponse.status;
-        const responseBody = await gmailResponse.text();
+        let responseText = await gmailResponse.text();
         
         if (!gmailResponse.ok) {
-          console.error("Gmail API error response:", responseStatus, responseBody);
+          console.error("Gmail API error response:", responseStatus, responseText);
+          
+          let responseJson;
+          try {
+            responseJson = JSON.parse(responseText);
+          } catch (e) {
+            responseJson = null;
+          }
           
           if (responseStatus === 401) {
             throw new Error("Gmail API authorization failed. Your Gmail OAuth setup may need to be reconfigured.");
           } else if (responseStatus === 403) {
-            throw new Error("Gmail API permission denied. Make sure your OAuth scope includes https://mail.google.com/");
+            if (responseJson && responseJson.error && responseJson.error.message) {
+              throw new Error(`Gmail API error: ${responseJson.error.message}`);
+            } else {
+              throw new Error("Gmail API permission denied. Make sure your OAuth scope includes https://mail.google.com/");
+            }
           } else if (responseStatus === 400) {
-            throw new Error(`Gmail API error: ${responseBody}`);
+            if (responseJson && responseJson.error && responseJson.error.message) {
+              throw new Error(`Gmail API error: ${responseJson.error.message}`);
+            } else {
+              throw new Error(`Gmail API error: ${responseText}`);
+            }
           } else {
-            throw new Error(`Gmail API error: HTTP ${responseStatus} - ${responseBody}`);
+            throw new Error(`Gmail API error: HTTP ${responseStatus} - ${responseText}`);
           }
         }
         
         let gmailData;
         try {
-          gmailData = JSON.parse(responseBody);
+          gmailData = JSON.parse(responseText);
         } catch (jsonError) {
-          console.log("Non-JSON response from Gmail API", responseBody);
+          console.log("Non-JSON response from Gmail API", responseText);
           gmailData = { success: true };
         }
         

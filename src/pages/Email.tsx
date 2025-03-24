@@ -1,5 +1,7 @@
+
 import React, { useState } from "react";
-import { Inbox, Send, Archive, Star, Trash2, File, Search, Mail, MoreHorizontal } from "lucide-react";
+import { Inbox, Send, Archive, Star, Trash2, File, Search, Mail, MoreHorizontal, Settings, Link } from "lucide-react";
+import { Link as RouterLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Header from "@/components/layout/Header";
@@ -238,9 +240,14 @@ const Email: React.FC = () => {
         
         <main className="flex h-[calc(100vh-64px)]">
           <div className="w-56 border-r bg-white">
-            <div className="p-4">
+            <div className="p-4 space-y-2">
               <Button className="w-full">
                 <Mail className="h-4 w-4 mr-2" /> Compose
+              </Button>
+              <Button variant="outline" className="w-full" asChild>
+                <RouterLink to="/email-automation">
+                  <Settings className="h-4 w-4 mr-2" /> Email Automation
+                </RouterLink>
               </Button>
             </div>
             

@@ -10,6 +10,7 @@ import Tasks from "./pages/Tasks";
 import Calendar from "./pages/Calendar";
 import Contacts from "./pages/Contacts";
 import Email from "./pages/Email";
+import EmailAutomation from "./pages/EmailAutomation";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/email" element={<Email />} />
+          <Route path="/email-automation" element={<EmailAutomation />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

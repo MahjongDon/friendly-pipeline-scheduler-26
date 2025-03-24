@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import ContactsList from "@/components/contacts/ContactsList";
 import FilterDialog from "@/components/contacts/FilterDialog";
 import ContactForm from "@/components/contacts/ContactForm";
+import ContactProfileDialog from "@/components/contacts/ContactProfileDialog";
 import { Contact } from "@/types/contact";
 import { sampleContacts } from "@/data/sampleContacts";
 
@@ -23,6 +24,7 @@ const Contacts: React.FC = () => {
   // Dialog states
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [currentContact, setCurrentContact] = useState<Contact | undefined>(undefined);
 
   const handleApplyFilters = () => {
@@ -32,11 +34,39 @@ const Contacts: React.FC = () => {
   const handleEditContact = (contact: Contact) => {
     setCurrentContact(contact);
     setIsAddContactDialogOpen(true);
+    setIsProfileDialogOpen(false);
   };
 
   const handleDeleteContact = (id: string) => {
     setContacts(prevContacts => prevContacts.filter(c => c.id !== id));
     toast.success("Contact deleted successfully");
+  };
+
+  const handleViewProfile = (contact: Contact) => {
+    setCurrentContact(contact);
+    setIsProfileDialogOpen(true);
+  };
+
+  const handleAddNote = (contact: Contact) => {
+    setCurrentContact(contact);
+    setIsProfileDialogOpen(true);
+    // Set a timeout to allow the dialog to open and then switch to the notes tab
+    setTimeout(() => {
+      const tabs = document.querySelector('[role="tablist"]');
+      const notesTab = tabs?.querySelector('[value="notes"]') as HTMLButtonElement;
+      if (notesTab) notesTab.click();
+    }, 100);
+  };
+
+  const handleAddToCampaign = (contact: Contact) => {
+    setCurrentContact(contact);
+    setIsProfileDialogOpen(true);
+    // Set a timeout to allow the dialog to open and then switch to the campaigns tab
+    setTimeout(() => {
+      const tabs = document.querySelector('[role="tablist"]');
+      const campaignsTab = tabs?.querySelector('[value="campaigns"]') as HTMLButtonElement;
+      if (campaignsTab) campaignsTab.click();
+    }, 100);
   };
 
   const handleSaveContact = (formData: Partial<Contact>) => {
@@ -119,6 +149,9 @@ const Contacts: React.FC = () => {
             searchQuery={searchQuery}
             onEditContact={handleEditContact}
             onDeleteContact={handleDeleteContact}
+            onViewProfile={handleViewProfile}
+            onAddNote={handleAddNote}
+            onAddToCampaign={handleAddToCampaign}
           />
           
           <FilterDialog 
@@ -132,6 +165,13 @@ const Contacts: React.FC = () => {
             onOpenChange={setIsAddContactDialogOpen}
             initialData={currentContact}
             onSave={handleSaveContact}
+          />
+
+          <ContactProfileDialog
+            open={isProfileDialogOpen}
+            onOpenChange={setIsProfileDialogOpen}
+            contact={currentContact || null}
+            onEdit={handleEditContact}
           />
         </main>
       </div>

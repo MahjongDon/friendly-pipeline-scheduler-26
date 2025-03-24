@@ -12,7 +12,7 @@ import {
   saveEmailConfig,
   getEmailConfig 
 } from "@/utils/emailValidation";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface EmailServiceConfigProps {
   service: EmailService;
@@ -35,21 +35,21 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [isTesting, setIsTesting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
   
   useEffect(() => {
     // Check if user is authenticated
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error("You must be logged in to configure email services");
-        onCancel();
-        return;
-      }
-      
-      setIsLoading(false);
-      
-      // Load existing configuration from Supabase if available
-      if (service.name === "SMTP") {
+    if (!user) {
+      toast.error("You must be logged in to configure email services");
+      onCancel();
+      return;
+    }
+    
+    setIsLoading(false);
+    
+    // Load existing configuration from Supabase if available
+    if (service.name === "SMTP") {
+      const loadConfig = async () => {
         const result = await getEmailConfig();
         if (result.success && result.config) {
           const config = result.config;
@@ -61,11 +61,11 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           // We don't set the password here for security reasons
           toast.info("Loaded existing SMTP configuration");
         }
-      }
-    };
-    
-    checkAuth();
-  }, [service.name, onCancel]);
+      };
+      
+      loadConfig();
+    }
+  }, [service.name, onCancel, user]);
   
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

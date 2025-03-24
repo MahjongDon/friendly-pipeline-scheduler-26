@@ -17,9 +17,19 @@ interface ContactItemProps {
   contact: Contact;
   onEdit: (contact: Contact) => void;
   onDelete: (id: string) => void;
+  onViewProfile: (contact: Contact) => void;
+  onAddNote: (contact: Contact) => void;
+  onAddToCampaign: (contact: Contact) => void;
 }
 
-const ContactItem: React.FC<ContactItemProps> = ({ contact, onEdit, onDelete }) => {
+const ContactItem: React.FC<ContactItemProps> = ({ 
+  contact, 
+  onEdit, 
+  onDelete,
+  onViewProfile,
+  onAddNote,
+  onAddToCampaign
+}) => {
   const handleEmailClick = () => {
     window.open(`mailto:${contact.email}`);
     toast.success(`Composing email to ${contact.name}`);
@@ -31,7 +41,10 @@ const ContactItem: React.FC<ContactItemProps> = ({ contact, onEdit, onDelete }) 
   };
 
   return (
-    <div className="flex items-center p-4 bg-white rounded-md border hover:shadow-subtle transition-all duration-200">
+    <div 
+      className="flex items-center p-4 bg-white rounded-md border hover:shadow-subtle transition-all duration-200 cursor-pointer"
+      onClick={() => onViewProfile(contact)}
+    >
       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium flex-shrink-0">
         {contact.name.split(" ").map(name => name[0]).join("")}
       </div>
@@ -61,7 +74,7 @@ const ContactItem: React.FC<ContactItemProps> = ({ contact, onEdit, onDelete }) 
         </p>
       </div>
       
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEmailClick}>
           <Mail className="h-4 w-4" />
         </Button>
@@ -75,16 +88,16 @@ const ContactItem: React.FC<ContactItemProps> = ({ contact, onEdit, onDelete }) 
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => toast.success(`Viewing ${contact.name}'s profile`)}>
+            <DropdownMenuItem onClick={() => onViewProfile(contact)}>
               View profile
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(contact)}>
               Edit contact
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast.success(`Added note to ${contact.name}`)}>
+            <DropdownMenuItem onClick={() => onAddNote(contact)}>
               Add note
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast.success(`Added ${contact.name} to campaign`)}>
+            <DropdownMenuItem onClick={() => onAddToCampaign(contact)}>
               Add to campaign
             </DropdownMenuItem>
             <DropdownMenuSeparator />

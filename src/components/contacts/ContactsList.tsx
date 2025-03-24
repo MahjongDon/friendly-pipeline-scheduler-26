@@ -9,13 +9,19 @@ interface ContactsListProps {
   searchQuery: string;
   onEditContact: (contact: Contact) => void;
   onDeleteContact: (id: string) => void;
+  onViewProfile: (contact: Contact) => void;
+  onAddNote: (contact: Contact) => void;
+  onAddToCampaign: (contact: Contact) => void;
 }
 
 const ContactsList: React.FC<ContactsListProps> = ({ 
   contacts, 
   searchQuery,
   onEditContact,
-  onDeleteContact
+  onDeleteContact,
+  onViewProfile,
+  onAddNote,
+  onAddToCampaign
 }) => {
   const filteredContacts = contacts.filter(contact => 
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -39,6 +45,9 @@ const ContactsList: React.FC<ContactsListProps> = ({
               contact={contact} 
               onEdit={onEditContact} 
               onDelete={onDeleteContact}
+              onViewProfile={onViewProfile}
+              onAddNote={onAddNote}
+              onAddToCampaign={onAddToCampaign}
             />
           ))}
         </div>
@@ -53,6 +62,9 @@ const ContactsList: React.FC<ContactsListProps> = ({
                 contact={contact} 
                 onEdit={onEditContact} 
                 onDelete={onDeleteContact}
+                onViewProfile={onViewProfile}
+                onAddNote={onAddNote}
+                onAddToCampaign={onAddToCampaign}
               />
             ))}
         </div>
@@ -67,6 +79,9 @@ const ContactsList: React.FC<ContactsListProps> = ({
                 contact={contact} 
                 onEdit={onEditContact} 
                 onDelete={onDeleteContact}
+                onViewProfile={onViewProfile}
+                onAddNote={onAddNote}
+                onAddToCampaign={onAddToCampaign}
               />
             ))}
         </div>
@@ -81,6 +96,9 @@ const ContactsList: React.FC<ContactsListProps> = ({
                 contact={contact} 
                 onEdit={onEditContact} 
                 onDelete={onDeleteContact}
+                onViewProfile={onViewProfile}
+                onAddNote={onAddNote}
+                onAddToCampaign={onAddToCampaign}
               />
             ))}
         </div>

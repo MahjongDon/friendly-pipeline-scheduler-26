@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Mail, Link, AlertCircle, CheckCircle, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,8 +22,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmailService } from "@/types/emailAutomation";
 import { toast } from "sonner";
 import EmailServiceConfig from "./EmailServiceConfig";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface EmailSetupDialogProps {
   isOpen: boolean;
@@ -39,34 +39,14 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
   const [services, setServices] = useState<EmailService[]>(emailServices);
   const [selectedService, setSelectedService] = useState<EmailService | null>(null);
   const [activeTab, setActiveTab] = useState("services");
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [isChecking, setIsChecking] = useState(true);
   const navigate = useNavigate();
-  
-  useEffect(() => {
-    const checkAuth = async () => {
-      setIsChecking(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setIsAuthenticated(!!session);
-      } catch (error) {
-        console.error("Error checking authentication:", error);
-        setIsAuthenticated(false);
-      } finally {
-        setIsChecking(false);
-      }
-    };
-    
-    if (isOpen) {
-      checkAuth();
-    }
-  }, [isOpen]);
+  const { user, loading } = useAuth();
   
   const handleConfigureService = (service: EmailService) => {
-    if (!isAuthenticated) {
+    if (!user) {
       toast.error("You must be logged in to configure email services");
       onOpenChange(false);
-      navigate("/auth"); // Now we have a proper auth route
+      navigate("/auth");
       return;
     }
     
@@ -101,7 +81,7 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
   };
 
   const renderAuthWarning = () => {
-    if (isChecking) {
+    if (loading) {
       return (
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
           <div className="flex items-start">
@@ -114,7 +94,7 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
       );
     }
 
-    if (isAuthenticated === false) {
+    if (!user) {
       return (
         <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
           <div className="flex items-start">
@@ -201,7 +181,7 @@ const EmailSetupDialog: React.FC<EmailSetupDialogProps> = ({
                         variant={service.isConfigured ? "outline" : "default"} 
                         className="w-full"
                         onClick={() => handleConfigureService(service)}
-                        disabled={isAuthenticated === false}
+                        disabled={!user}
                       >
                         {service.isConfigured ? "Edit Configuration" : `Configure ${service.name}`}
                       </Button>

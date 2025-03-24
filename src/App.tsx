@@ -16,6 +16,7 @@ import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedLayout from "./components/layout/ProtectedLayout";
 
 const queryClient = new QueryClient();
 
@@ -27,17 +28,23 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/pipeline" element={<Pipeline />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/contacts" element={<Contacts />} />
-            <Route path="/email" element={<Email />} />
-            <Route path="/email-automation" element={<EmailAutomation />} />
-            <Route path="/settings" element={<Settings />} />
+            {/* Public routes */}
             <Route path="/auth" element={<Auth />} />
-            <Route path="/help" element={<Help />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            
+            {/* Protected routes */}
+            <Route element={<ProtectedLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/pipeline" element={<Pipeline />} />
+              <Route path="/tasks" element={<Tasks />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/contacts" element={<Contacts />} />
+              <Route path="/email" element={<Email />} />
+              <Route path="/email-automation" element={<EmailAutomation />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/help" element={<Help />} />
+            </Route>
+            
+            {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

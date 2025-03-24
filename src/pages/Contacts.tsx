@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { PlusCircle, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,8 +13,11 @@ import ContactForm from "@/components/contacts/ContactForm";
 import ContactProfileDialog from "@/components/contacts/ContactProfileDialog";
 import { Contact } from "@/types/contact";
 import { sampleContacts } from "@/data/sampleContacts";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 
 const Contacts: React.FC = () => {
+  const { user } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const isMobile = useIsMobile();
@@ -27,6 +29,11 @@ const Contacts: React.FC = () => {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [currentContact, setCurrentContact] = useState<Contact | undefined>(undefined);
   const [activeProfileTab, setActiveProfileTab] = useState("details");
+
+  // If not authenticated, redirect to auth page
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   const handleApplyFilters = () => {
     toast.success("Filters applied successfully");

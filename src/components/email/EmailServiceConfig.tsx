@@ -172,6 +172,12 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           if (testResult.diagnosticInfo) {
             setDiagnosticInfo(testResult.diagnosticInfo);
           }
+          
+          // Special handling for the port 465 error
+          if (testResult.message && testResult.message.includes("Deno.writeAll is not a function")) {
+            setConfigError("There's a compatibility issue with port 465. Please use port 587 instead.");
+            setDiagnosticInfo("Our email service has a technical limitation with port 465. Port 587 (TLS) works more reliably.");
+          }
         }
       } catch (error) {
         toast.error("Failed to test SMTP connection");
@@ -247,10 +253,10 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
             <h4 className="font-medium mb-1">Troubleshooting Tips</h4>
             <ul className="text-sm list-disc pl-5 space-y-1">
               <li>Ensure you're using an app password if using Gmail</li>
+              <li><strong>Use port 587 for most reliable results</strong> (port 465 has compatibility issues)</li>
               <li>Check if your email provider requires specific port settings</li>
               <li>Some email providers may have additional security settings that need to be enabled</li>
               <li>Check your spam folder for the test email</li>
-              <li>Try port 465 for SSL connections if port 587 (TLS) fails</li>
               <li>Make sure your email service allows Less Secure App access or has app passwords enabled</li>
               <li>Some email providers may block connections from cloud environments</li>
             </ul>
@@ -287,7 +293,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p className="text-xs">Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)</p>
+                          <p className="text-xs">Recommended port: 587 (TLS). Port 465 (SSL) has compatibility issues.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>

@@ -24,19 +24,36 @@ serve(async (req) => {
     
     // Create SMTP client
     const client = new SmtpClient();
-
+    
     try {
       console.log("Attempting to connect to SMTP server...");
       
       // Set connection timeout
       const timeoutMs = 20000; // 20 second timeout
-      const connectPromise = client.connectTLS({
-        hostname: host,
-        port: Number(port),
-        username: username,
-        password: password,
-        debug: true, // Enable debug for more detailed logs
-      });
+      let connectPromise;
+      
+      // Different connection approach based on port
+      const portNumber = Number(port);
+      
+      if (portNumber === 465) {
+        console.log("Using secure SSL connection for port 465");
+        connectPromise = client.connectTLS({
+          hostname: host,
+          port: portNumber,
+          username: username,
+          password: password,
+          debug: true,
+        });
+      } else {
+        console.log(`Using standard TLS connection for port ${portNumber}`);
+        connectPromise = client.connectTLS({
+          hostname: host,
+          port: portNumber,
+          username: username,
+          password: password,
+          debug: true,
+        });
+      }
       
       // Create a timeout promise
       const timeoutPromise = new Promise((_, reject) => {
@@ -98,28 +115,33 @@ serve(async (req) => {
           status: 200,
         }
       );
-    } catch (smtpError) {
+    } catch (smtpError: any) {
       console.error("SMTP connection or sending error:", smtpError);
       
-      let errorMessage = smtpError.message;
+      let errorMessage = smtpError.message || "Unknown SMTP error";
       let diagnosticInfo = "";
       
       // Add more specific error messages for common SMTP issues
-      if (errorMessage.includes("timeout")) {
-        errorMessage = `Connection timeout. The SMTP server did not respond within the allowed time.`;
-        diagnosticInfo = "Check your firewall settings and ensure the host and port are correct.";
-      } else if (errorMessage.includes("authentication")) {
-        errorMessage = `Authentication failed. Please check your username and password.`;
-        diagnosticInfo = "For Gmail, ensure you're using an App Password if 2FA is enabled.";
-      } else if (errorMessage.includes("certificate")) {
-        errorMessage = `SSL/TLS certificate error.`;
-        diagnosticInfo = "There was an issue with the server's security certificate.";
-      } else if (errorMessage.includes("bufio")) {
-        errorMessage = `Connection error. This may be due to incorrect host/port or network issues.`;
-        diagnosticInfo = "Try using different port numbers like 465 (SSL) or 587 (TLS) depending on your email provider.";
-      } else if (errorMessage.includes("Error: failed to lookup address")) {
-        errorMessage = `DNS lookup failed. Could not find the SMTP server.`;
-        diagnosticInfo = "Check that the hostname is correct.";
+      if (typeof errorMessage === 'string') {
+        if (errorMessage.includes("timeout")) {
+          errorMessage = `Connection timeout. The SMTP server did not respond within the allowed time.`;
+          diagnosticInfo = "Check your firewall settings and ensure the host and port are correct.";
+        } else if (errorMessage.includes("authentication")) {
+          errorMessage = `Authentication failed. Please check your username and password.`;
+          diagnosticInfo = "For Gmail, ensure you're using an App Password if 2FA is enabled.";
+        } else if (errorMessage.includes("certificate")) {
+          errorMessage = `SSL/TLS certificate error.`;
+          diagnosticInfo = "There was an issue with the server's security certificate.";
+        } else if (errorMessage.includes("bufio") || errorMessage.includes("connection")) {
+          errorMessage = `Connection error. This may be due to incorrect host/port or network issues.`;
+          diagnosticInfo = "Try using different port numbers like 465 (SSL) or 587 (TLS) depending on your email provider.";
+        } else if (errorMessage.includes("Error: failed to lookup address")) {
+          errorMessage = `DNS lookup failed. Could not find the SMTP server.`;
+          diagnosticInfo = "Check that the hostname is correct.";
+        } else if (errorMessage.includes("Deno.writeAll is not a function")) {
+          errorMessage = `SMTP library compatibility issue with port 465.`;
+          diagnosticInfo = "Please try using port 587 with TLS instead.";
+        }
       }
       
       // Ensure connection is closed even on error
@@ -141,13 +163,13 @@ serve(async (req) => {
         }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("SMTP test error:", error);
     
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: `Failed to test SMTP connection: ${error.message}`,
+        message: `Failed to test SMTP connection: ${error.message || "Unknown error"}`,
         stack: error.stack // Include stack trace for debugging
       }),
       {

@@ -26,6 +26,8 @@ serve(async (req) => {
     const client = new SmtpClient();
 
     try {
+      console.log("Attempting to connect to SMTP server...");
+      
       // Connect to the SMTP server with TLS
       await client.connectTLS({
         hostname: host,
@@ -52,6 +54,8 @@ serve(async (req) => {
         <p>If you received this email, your SMTP configuration is working properly.</p>
       `;
 
+      console.log("Preparing to send test email...");
+      
       // Send test email to the user's email
       const sendResult = await client.send({
         from: fromName ? `${fromName} <${fromEmail}>` : fromEmail,
@@ -77,19 +81,32 @@ serve(async (req) => {
         }
       );
     } catch (smtpError) {
-      console.error("SMTP connection or sending error:", smtpError.message);
+      console.error("SMTP connection or sending error:", smtpError);
+      
+      let errorMessage = smtpError.message;
+      
+      // Add more specific error messages for common SMTP issues
+      if (errorMessage.includes("timeout")) {
+        errorMessage = `Connection timeout. Please check your host and port settings. Error: ${errorMessage}`;
+      } else if (errorMessage.includes("authentication")) {
+        errorMessage = `Authentication failed. Please check your username and password. Error: ${errorMessage}`;
+      } else if (errorMessage.includes("certificate")) {
+        errorMessage = `SSL/TLS certificate error. Error: ${errorMessage}`;
+      } else if (errorMessage.includes("bufio")) {
+        errorMessage = `Connection error. This may be due to incorrect host/port or network issues. Error: ${errorMessage}`;
+      }
       
       // Ensure connection is closed even on error
       try {
         await client.close();
       } catch (closeError) {
-        console.error("Error closing SMTP connection:", closeError.message);
+        console.error("Error closing SMTP connection:", closeError);
       }
       
-      throw new Error(`SMTP error: ${smtpError.message}`);
+      throw new Error(`SMTP error: ${errorMessage}`);
     }
   } catch (error) {
-    console.error("SMTP test error:", error.message);
+    console.error("SMTP test error:", error);
     
     return new Response(
       JSON.stringify({ 

@@ -13,7 +13,8 @@ import {
   getEmailConfig 
 } from "@/utils/emailValidation";
 import { useAuth } from "@/contexts/AuthContext";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, HelpCircle, ExternalLink } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EmailServiceConfigProps {
   service: EmailService;
@@ -153,6 +154,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
         if (!validationResult.isValid) {
           validationResult.errors.forEach(error => toast.error(error));
           setConfigError("Please fix the validation errors");
+          setIsTesting(false);
           return;
         }
         
@@ -204,7 +206,17 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
         
         {service.name === "SMTP" && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800">
-            <h4 className="font-medium mb-1">Gmail SMTP Setup Help</h4>
+            <h4 className="font-medium mb-1 flex items-center">
+              Gmail SMTP Setup Help
+              <a 
+                href="https://support.google.com/accounts/answer/185833?hl=en" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="ml-1 text-blue-600 hover:underline inline-flex items-center"
+              >
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </a>
+            </h4>
             <p className="text-sm mb-2">
               If you're using Gmail, you'll need to use an App Password instead of your regular password.
             </p>
@@ -216,6 +228,18 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
               <li>Generate a new app password for "Mail"</li>
               <li>Use that 16-character password here</li>
             </ol>
+          </div>
+        )}
+        
+        {service.name === "SMTP" && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
+            <h4 className="font-medium mb-1">Troubleshooting Tips</h4>
+            <ul className="text-sm list-disc pl-5 space-y-1">
+              <li>Ensure you're using an app password if using Gmail</li>
+              <li>Check if your email provider requires specific port settings</li>
+              <li>Some email providers may have additional security settings that need to be enabled</li>
+              <li>Check your spam folder for the test email</li>
+            </ul>
           </div>
         )}
         
@@ -234,12 +258,26 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="smtp-port">SMTP Port</Label>
-                  <Input 
-                    id="smtp-port" 
-                    placeholder="587" 
-                    value={port}
-                    onChange={(e) => setPort(e.target.value)}
-                  />
+                  <div className="flex items-center space-x-2">
+                    <Input 
+                      id="smtp-port" 
+                      placeholder="587" 
+                      value={port}
+                      onChange={(e) => setPort(e.target.value)}
+                    />
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="cursor-help">
+                            <HelpCircle className="h-4 w-4 text-gray-400" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
               </div>
               

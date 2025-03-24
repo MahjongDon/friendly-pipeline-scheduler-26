@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { AlertCircle, HelpCircle, ExternalLink, Info, Lock } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface EmailServiceConfigProps {
   service: EmailService;
@@ -46,6 +48,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [configError, setConfigError] = useState<string | null>(null);
   const [diagnosticInfo, setDiagnosticInfo] = useState<string | null>(null);
   const [cloudLimitation, setCloudLimitation] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -209,7 +212,14 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
         if (testResult.success) {
           toast.success(testResult.message || "SMTP connection test successful");
         } else {
-          toast.error(testResult.message || "Failed to test SMTP connection");
+          // Show cloud limitation message regardless when it comes to Gmail OAuth
+          if (host.includes("gmail") && authMethod === "oauth2") {
+            setCloudLimitation(true);
+            toast.error("Gmail SMTP connections often fail in serverless environments. Consider using SendGrid instead.");
+          } else {
+            toast.error(testResult.message || "Failed to test SMTP connection");
+          }
+          
           setConfigError(testResult.message || "Failed to test SMTP connection");
           
           if (testResult.diagnosticInfo) {
@@ -235,6 +245,253 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
       }
     }
   };
+  
+  const renderSmtpForm = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="smtp-host">SMTP Host</Label>
+          <Input 
+            id="smtp-host" 
+            placeholder="smtp.gmail.com" 
+            value={host}
+            onChange={(e) => setHost(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="smtp-port">SMTP Port</Label>
+          <div className="flex items-center space-x-2">
+            <Input 
+              id="smtp-port" 
+              placeholder="587" 
+              value={port}
+              onChange={(e) => setPort(e.target.value)}
+            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="cursor-help">
+                    <HelpCircle className="h-4 w-4 text-gray-400" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Recommended port: 587 (TLS). Port 465 (SSL) has compatibility issues.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="smtp-username">Username (Email)</Label>
+        <Input 
+          id="smtp-username" 
+          type="email"
+          placeholder="your.email@gmail.com" 
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Authentication Method</Label>
+        <RadioGroup 
+          value={authMethod} 
+          onValueChange={(value) => setAuthMethod(value as "plain" | "oauth2")}
+          className="flex space-x-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="plain" id="auth-plain" />
+            <Label htmlFor="auth-plain" className="cursor-pointer">Plain Password</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="oauth2" id="auth-oauth2" />
+            <Label htmlFor="auth-oauth2" className="cursor-pointer">OAuth2 (Required for Gmail)</Label>
+          </div>
+        </RadioGroup>
+      </div>
+      
+      {authMethod === "plain" ? (
+        <div className="space-y-2">
+          <Label htmlFor="smtp-password">Password</Label>
+          <Input 
+            id="smtp-password" 
+            type="password" 
+            placeholder="Your SMTP password" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {host.includes("gmail") && (
+            <p className="text-xs text-red-600 mt-1 flex items-center">
+              <Lock className="h-3 w-3 mr-1" />
+              Gmail no longer supports password authentication. Please use OAuth2 instead.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4 border p-4 rounded-md bg-gray-50">
+          <h4 className="font-medium text-sm">OAuth2 Credentials</h4>
+          <div className="space-y-2">
+            <Label htmlFor="client-id">Client ID</Label>
+            <Input 
+              id="client-id" 
+              placeholder="Your OAuth2 Client ID" 
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="client-secret">Client Secret</Label>
+            <Input 
+              id="client-secret" 
+              type="password"
+              placeholder="Your OAuth2 Client Secret" 
+              value={clientSecret}
+              onChange={(e) => setClientSecret(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="refresh-token">Refresh Token</Label>
+            <Input 
+              id="refresh-token" 
+              type="password"
+              placeholder="Your OAuth2 Refresh Token" 
+              value={refreshToken}
+              onChange={(e) => setRefreshToken(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="access-token">Access Token (Optional)</Label>
+            <Input 
+              id="access-token" 
+              type="password"
+              placeholder="Your OAuth2 Access Token (optional)" 
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+            />
+          </div>
+          
+          {host.includes("gmail") && (
+            <Collapsible 
+              open={showHelp}
+              onOpenChange={setShowHelp}
+              className="border rounded-md p-2 mt-2 bg-blue-50 border-blue-200"
+            >
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="p-0 w-full flex justify-between items-center text-blue-600 hover:text-blue-800 hover:bg-transparent"
+                >
+                  <span className="flex items-center text-sm font-medium">
+                    <Info className="h-4 w-4 mr-1" /> Gmail OAuth2 Setup Help
+                  </span>
+                  <span className="text-xs">{showHelp ? "Hide" : "Show"}</span>
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <ol className="text-xs list-decimal pl-5 space-y-1 text-blue-800">
+                  <li>Go to the <a href="https://console.developers.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a></li>
+                  <li>Create a new project</li>
+                  <li>Enable the Gmail API</li>
+                  <li>Configure the OAuth consent screen</li>
+                  <li>Create OAuth credentials (client ID and client secret)</li>
+                  <li>Use the OAuth Playground to get a refresh token:
+                    <ul className="list-disc pl-5 mt-1">
+                      <li>Go to <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">OAuth Playground</a></li>
+                      <li>Click the settings icon (⚙️) and check "Use your own OAuth credentials"</li>
+                      <li>Enter your Client ID and Client Secret</li>
+                      <li>Select "Gmail API v1" and the scopes <code>https://mail.google.com/</code></li>
+                      <li>Click "Authorize APIs" and follow the prompts</li>
+                      <li>Click "Exchange authorization code for tokens"</li>
+                      <li>Copy the refresh token for use in this form</li>
+                    </ul>
+                  </li>
+                </ol>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                  onClick={() => setShowHelp(false)}
+                >
+                  Close
+                </Button>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </div>
+      )}
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="from-email">From Email</Label>
+          <Input 
+            id="from-email" 
+            type="email"
+            placeholder="noreply@yourcompany.com" 
+            value={fromEmail}
+            onChange={(e) => setFromEmail(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="from-name">From Name (Optional)</Label>
+          <Input 
+            id="from-name" 
+            placeholder="Your Company Name" 
+            value={fromName}
+            onChange={(e) => setFromName(e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+  
+  const renderApiForm = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="api-key">{service.name} API Key</Label>
+        <Input 
+          id="api-key" 
+          placeholder="Enter your API key" 
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+        />
+        {service.name === "SendGrid" && (
+          <p className="text-xs text-gray-500 mt-1">
+            You can get your API key from the <a href="https://app.sendgrid.com/settings/api_keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">SendGrid API Keys page</a>.
+          </p>
+        )}
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="from-email">From Email</Label>
+          <Input 
+            id="from-email" 
+            placeholder="noreply@yourcompany.com" 
+            value={fromEmail}
+            onChange={(e) => setFromEmail(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="from-name">From Name (Optional)</Label>
+          <Input 
+            id="from-name" 
+            placeholder="Your Company Name" 
+            value={fromName}
+            onChange={(e) => setFromName(e.target.value)}
+          />
+        </div>
+      </div>
+      
+      {service.name === "Amazon SES" && (
+        <div className="bg-blue-50 text-blue-700 p-3 rounded-md text-sm mt-2">
+          <p className="font-medium">AWS Region Note:</p>
+          <p>The region will be extracted from your AWS credentials automatically.</p>
+        </div>
+      )}
+    </div>
+  );
   
   if (isLoading) {
     return (
@@ -274,50 +531,29 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
               Cloud Environment Limitation
             </h4>
             <p className="text-sm mb-2">
-              Direct SMTP connections often fail in serverless environments due to network restrictions. Your configuration can still be saved, but we recommend:
+              Direct SMTP connections often fail in serverless environments due to network restrictions. We recommend:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-1">
-              <li>Using a dedicated email service API like SendGrid, Mailchimp, or Amazon SES</li>
-              <li>Testing your configuration in a non-serverless environment</li>
-              <li>Setting up email forwarding or webhooks instead of direct SMTP</li>
+              <li>Using a dedicated email service API like SendGrid instead</li>
+              <li>For Gmail specifically, use the Gmail API instead of SMTP</li>
             </ul>
-          </div>
-        )}
-        
-        {service.name === "SMTP" && host.includes("gmail") && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800">
-            <h4 className="font-medium mb-1 flex items-center">
-              Gmail OAuth2 Setup Help
-              <a 
-                href="https://developers.google.com/gmail/api/quickstart/js" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="ml-1 text-blue-600 hover:underline inline-flex items-center"
+            <div className="mt-3">
+              <Button 
+                size="sm" 
+                variant="secondary"
+                onClick={() => {
+                  onCancel();
+                  // Find SendGrid in the services and select it
+                  const sendGridService = emailServices.find(s => s.name === "SendGrid");
+                  if (sendGridService) {
+                    onSave(service, {}); // Close this form
+                    toast.info("Consider using SendGrid instead of SMTP");
+                  }
+                }}
               >
-                <ExternalLink className="h-3 w-3 ml-1" />
-              </a>
-            </h4>
-            <p className="text-sm mb-2">
-              Google now requires OAuth2 authentication for Gmail SMTP. Follow these steps to set it up:
-            </p>
-            <ol className="text-sm list-decimal pl-5 space-y-1">
-              <li>Go to the <a href="https://console.developers.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a></li>
-              <li>Create a new project</li>
-              <li>Enable the Gmail API</li>
-              <li>Configure the OAuth consent screen</li>
-              <li>Create OAuth credentials (client ID and client secret)</li>
-              <li>Use the OAuth Playground to get a refresh token:
-                <ul className="list-disc pl-5 mt-1">
-                  <li>Go to <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">OAuth Playground</a></li>
-                  <li>Click the settings icon (⚙️) and check "Use your own OAuth credentials"</li>
-                  <li>Enter your Client ID and Client Secret</li>
-                  <li>Select "Gmail API v1" and the scopes <code>https://mail.google.com/</code></li>
-                  <li>Click "Authorize APIs" and follow the prompts</li>
-                  <li>Click "Exchange authorization code for tokens"</li>
-                  <li>Copy the refresh token for use in this form</li>
-                </ul>
-              </li>
-            </ol>
+                Switch to SendGrid
+              </Button>
+            </div>
           </div>
         )}
         
@@ -327,206 +563,13 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
             <ul className="text-sm list-disc pl-5 space-y-1">
               <li>For Gmail, you must use OAuth2 authentication as Google has disabled less secure app access</li>
               <li><strong>Use port 587 for most reliable results</strong> (port 465 has compatibility issues)</li>
-              <li>Check if your email provider requires specific port settings</li>
-              <li>Some email providers may have additional security settings that need to be enabled</li>
-              <li>Check your spam folder for the test email</li>
-              <li><strong>Note:</strong> Direct SMTP connections often fail in serverless environments due to network restrictions</li>
+              <li><strong>Note:</strong> Direct SMTP connections often fail in serverless environments. Consider using SendGrid instead.</li>
             </ul>
           </div>
         )}
         
         <form id="email-service-form" onSubmit={handleSave}>
-          {service.name === "SMTP" ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="smtp-host">SMTP Host</Label>
-                  <Input 
-                    id="smtp-host" 
-                    placeholder="smtp.gmail.com" 
-                    value={host}
-                    onChange={(e) => setHost(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtp-port">SMTP Port</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input 
-                      id="smtp-port" 
-                      placeholder="587" 
-                      value={port}
-                      onChange={(e) => setPort(e.target.value)}
-                    />
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="cursor-help">
-                            <HelpCircle className="h-4 w-4 text-gray-400" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-xs">Recommended port: 587 (TLS). Port 465 (SSL) has compatibility issues.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="smtp-username">Username (Email)</Label>
-                <Input 
-                  id="smtp-username" 
-                  type="email"
-                  placeholder="your.email@gmail.com" 
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Authentication Method</Label>
-                <RadioGroup 
-                  value={authMethod} 
-                  onValueChange={(value: "plain" | "oauth2") => setAuthMethod(value)}
-                  className="flex space-x-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="plain" id="auth-plain" />
-                    <Label htmlFor="auth-plain" className="cursor-pointer">Plain Password</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="oauth2" id="auth-oauth2" />
-                    <Label htmlFor="auth-oauth2" className="cursor-pointer">OAuth2 (Required for Gmail)</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              
-              {authMethod === "plain" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="smtp-password">Password</Label>
-                  <Input 
-                    id="smtp-password" 
-                    type="password" 
-                    placeholder="Your SMTP password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  {host.includes("gmail") && (
-                    <p className="text-xs text-red-600 mt-1 flex items-center">
-                      <Lock className="h-3 w-3 mr-1" />
-                      Gmail no longer supports password authentication. Please use OAuth2 instead.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-                  <h4 className="font-medium text-sm">OAuth2 Credentials</h4>
-                  <div className="space-y-2">
-                    <Label htmlFor="client-id">Client ID</Label>
-                    <Input 
-                      id="client-id" 
-                      placeholder="Your OAuth2 Client ID" 
-                      value={clientId}
-                      onChange={(e) => setClientId(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="client-secret">Client Secret</Label>
-                    <Input 
-                      id="client-secret" 
-                      type="password"
-                      placeholder="Your OAuth2 Client Secret" 
-                      value={clientSecret}
-                      onChange={(e) => setClientSecret(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="refresh-token">Refresh Token</Label>
-                    <Input 
-                      id="refresh-token" 
-                      type="password"
-                      placeholder="Your OAuth2 Refresh Token" 
-                      value={refreshToken}
-                      onChange={(e) => setRefreshToken(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="access-token">Access Token (Optional)</Label>
-                    <Input 
-                      id="access-token" 
-                      type="password"
-                      placeholder="Your OAuth2 Access Token (optional)" 
-                      value={accessToken}
-                      onChange={(e) => setAccessToken(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="from-email">From Email</Label>
-                  <Input 
-                    id="from-email" 
-                    type="email"
-                    placeholder="noreply@yourcompany.com" 
-                    value={fromEmail}
-                    onChange={(e) => setFromEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="from-name">From Name (Optional)</Label>
-                  <Input 
-                    id="from-name" 
-                    placeholder="Your Company Name" 
-                    value={fromName}
-                    onChange={(e) => setFromName(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="api-key">{service.name} API Key</Label>
-                <Input 
-                  id="api-key" 
-                  placeholder="Enter your API key" 
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="from-email">From Email</Label>
-                  <Input 
-                    id="from-email" 
-                    placeholder="noreply@yourcompany.com" 
-                    value={fromEmail}
-                    onChange={(e) => setFromEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="from-name">From Name (Optional)</Label>
-                  <Input 
-                    id="from-name" 
-                    placeholder="Your Company Name" 
-                    value={fromName}
-                    onChange={(e) => setFromName(e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              {service.name === "Amazon SES" && (
-                <div className="bg-blue-50 text-blue-700 p-3 rounded-md text-sm mt-2">
-                  <p className="font-medium">AWS Region Note:</p>
-                  <p>The region will be extracted from your AWS credentials automatically.</p>
-                </div>
-              )}
-            </div>
-          )}
+          {service.name === "SMTP" ? renderSmtpForm() : renderApiForm()}
         </form>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">

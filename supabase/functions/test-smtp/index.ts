@@ -31,6 +31,23 @@ serve(async (req) => {
       throw new Error("Username, Client ID, Client Secret, and Refresh Token are required for OAuth2 authentication");
     }
     
+    // Gmail OAuth2 typically fails in serverless environments due to network restrictions
+    if (host.includes("gmail.com") && authMethod === "oauth2") {
+      console.log("Gmail SMTP OAuth2 connections often fail in serverless environments.");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Gmail SMTP connections typically fail in serverless environments.",
+          diagnosticInfo: "We recommend using an API-based email service like SendGrid, Mailchimp, or Amazon SES instead of direct SMTP for Gmail.",
+          cloudLimitation: true
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
+    
     // Create SMTP client
     const client = new SmtpClient();
     
@@ -202,7 +219,8 @@ serve(async (req) => {
         success: false, 
         message: `Failed to test SMTP connection: ${error.message || "Unknown error"}`,
         diagnosticInfo: "Check network connectivity and try again.",
-        stack: error.stack // Include stack trace for debugging
+        stack: error.stack, // Include stack trace for debugging
+        cloudLimitation: true
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

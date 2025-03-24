@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const validateEmailConfig = (config: {
@@ -103,28 +104,32 @@ export const testEmailConfig = async (config: {
         return {
           success: false,
           message: "SMTP test failed: Could not connect to the SMTP server",
-          diagnosticInfo: "This may be due to incorrect settings or network limitations in the cloud environment."
+          diagnosticInfo: "This may be due to incorrect settings or network limitations in the cloud environment.",
+          cloudLimitation: true
         };
       }
       
       return {
         success: false,
         message: error.message || "Failed to test SMTP connection",
-        diagnosticInfo: "Check network connectivity and try again."
+        diagnosticInfo: "Check network connectivity and try again.",
+        cloudLimitation: true
       };
     }
     
     return data || { 
       success: false, 
       message: "No response from SMTP test function", 
-      diagnosticInfo: "This might be a temporary issue. Try again later." 
+      diagnosticInfo: "This might be a temporary issue. Try again later.",
+      cloudLimitation: true
     };
   } catch (error) {
     console.error("Exception testing SMTP:", error);
     return {
       success: false,
       message: error instanceof Error ? error.message : "Failed to test SMTP connection",
-      diagnosticInfo: "Unexpected error while testing connection. Check console for details."
+      diagnosticInfo: "Unexpected error while testing connection. Check console for details.",
+      cloudLimitation: true
     };
   }
 };

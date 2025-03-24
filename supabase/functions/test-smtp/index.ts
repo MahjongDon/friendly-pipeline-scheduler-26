@@ -35,25 +35,19 @@ serve(async (req) => {
       // Different connection approach based on port
       const portNumber = Number(port);
       
-      if (portNumber === 465) {
-        console.log("Using secure SSL connection for port 465");
-        connectPromise = client.connectTLS({
-          hostname: host,
-          port: portNumber,
-          username: username,
-          password: password,
-          debug: true,
-        });
-      } else {
-        console.log(`Using standard TLS connection for port ${portNumber}`);
-        connectPromise = client.connectTLS({
-          hostname: host,
-          port: portNumber,
-          username: username,
-          password: password,
-          debug: true,
-        });
-      }
+      // Cloud environment notice
+      console.log("Note: SMTP connections may be restricted in Supabase Edge Functions");
+      
+      // Always use TLS approach regardless of port (both 587 and 465)
+      // This is a workaround for Deno compatibility issues with port 465
+      console.log(`Using TLS connection for port ${portNumber}`);
+      connectPromise = client.connectTLS({
+        hostname: host,
+        port: portNumber,
+        username: username,
+        password: password,
+        debug: true,
+      });
       
       // Create a timeout promise
       const timeoutPromise = new Promise((_, reject) => {
@@ -125,7 +119,7 @@ serve(async (req) => {
       if (typeof errorMessage === 'string') {
         if (errorMessage.includes("timeout")) {
           errorMessage = `Connection timeout. The SMTP server did not respond within the allowed time.`;
-          diagnosticInfo = "Check your firewall settings and ensure the host and port are correct.";
+          diagnosticInfo = "This is common in serverless environments. Consider using a third-party email service API instead.";
         } else if (errorMessage.includes("authentication")) {
           errorMessage = `Authentication failed. Please check your username and password.`;
           diagnosticInfo = "For Gmail, ensure you're using an App Password if 2FA is enabled.";
@@ -134,13 +128,16 @@ serve(async (req) => {
           diagnosticInfo = "There was an issue with the server's security certificate.";
         } else if (errorMessage.includes("bufio") || errorMessage.includes("connection")) {
           errorMessage = `Connection error. This may be due to incorrect host/port or network issues.`;
-          diagnosticInfo = "Try using different port numbers like 465 (SSL) or 587 (TLS) depending on your email provider.";
+          diagnosticInfo = "SMTP connections are often blocked in serverless environments. Consider using a third-party email service API (like SendGrid, Postmark, etc.) instead of direct SMTP.";
         } else if (errorMessage.includes("Error: failed to lookup address")) {
           errorMessage = `DNS lookup failed. Could not find the SMTP server.`;
           diagnosticInfo = "Check that the hostname is correct.";
         } else if (errorMessage.includes("Deno.writeAll is not a function")) {
           errorMessage = `SMTP library compatibility issue with port 465.`;
-          diagnosticInfo = "Please try using port 587 with TLS instead.";
+          diagnosticInfo = "This is a known limitation with the current Deno SMTP library. Consider using a dedicated email service API instead.";
+        } else {
+          // Generic message for other errors
+          diagnosticInfo = "SMTP connections from serverless functions often fail due to network restrictions. Consider using a dedicated email service API instead.";
         }
       }
       
@@ -155,7 +152,8 @@ serve(async (req) => {
         JSON.stringify({ 
           success: false, 
           message: `SMTP error: ${errorMessage}`,
-          diagnosticInfo: diagnosticInfo 
+          diagnosticInfo: diagnosticInfo,
+          cloudLimitation: true
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -170,6 +168,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: false, 
         message: `Failed to test SMTP connection: ${error.message || "Unknown error"}`,
+        diagnosticInfo: "Check network connectivity and try again.",
         stack: error.stack // Include stack trace for debugging
       }),
       {

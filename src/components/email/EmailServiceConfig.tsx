@@ -39,6 +39,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
   const [diagnosticInfo, setDiagnosticInfo] = useState<string | null>(null);
+  const [cloudLimitation, setCloudLimitation] = useState(false);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -148,6 +149,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
       setIsTesting(true);
       setConfigError(null);
       setDiagnosticInfo(null);
+      setCloudLimitation(false);
       
       try {
         const config = { host, port, username, password, fromEmail, fromName };
@@ -171,6 +173,10 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
           
           if (testResult.diagnosticInfo) {
             setDiagnosticInfo(testResult.diagnosticInfo);
+          }
+          
+          if (testResult.cloudLimitation) {
+            setCloudLimitation(true);
           }
           
           // Special handling for the port 465 error
@@ -220,6 +226,22 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
             </div>
           </div>
         )}
+
+        {cloudLimitation && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800">
+            <h4 className="font-medium mb-1 flex items-center">
+              Cloud Environment Limitation
+            </h4>
+            <p className="text-sm mb-2">
+              Direct SMTP connections often fail in serverless environments due to network restrictions. Your configuration can still be saved, but we recommend:
+            </p>
+            <ul className="text-sm list-disc pl-5 space-y-1">
+              <li>Using a dedicated email service API like SendGrid, Mailchimp, or Amazon SES</li>
+              <li>Testing your configuration in a non-serverless environment</li>
+              <li>Setting up email forwarding or webhooks instead of direct SMTP</li>
+            </ul>
+          </div>
+        )}
         
         {service.name === "SMTP" && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800">
@@ -258,7 +280,7 @@ const EmailServiceConfig: React.FC<EmailServiceConfigProps> = ({
               <li>Some email providers may have additional security settings that need to be enabled</li>
               <li>Check your spam folder for the test email</li>
               <li>Make sure your email service allows Less Secure App access or has app passwords enabled</li>
-              <li>Some email providers may block connections from cloud environments</li>
+              <li><strong>Note:</strong> Direct SMTP connections often fail in serverless environments due to network restrictions</li>
             </ul>
           </div>
         )}

@@ -1,39 +1,48 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import "./App.css";
 import Index from "./pages/Index";
-import Pipeline from "./pages/Pipeline";
+import Contacts from "./pages/Contacts";
 import Tasks from "./pages/Tasks";
 import Calendar from "./pages/Calendar";
-import Contacts from "./pages/Contacts";
+import Pipeline from "./pages/Pipeline";
+import Notes from "./pages/Notes";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
+import { Toaster } from "@/components/ui/sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const queryClient = new QueryClient();
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+const App = () => {
+  return (
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <Toaster position="top-right" richColors />
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/contacts" element={<Contacts />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/calendar" element={<Calendar />} />
-          <Route path="/contacts" element={<Contacts />} />
+          <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/notes" element={<Notes />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      </QueryClientProvider>
+    </BrowserRouter>
+  );
+};
 
 export default App;

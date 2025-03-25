@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
@@ -7,11 +6,11 @@ import {
   CalendarPlus, 
   CheckCircle2, 
   ListChecks, 
-  Mail, 
   PieChart, 
   Plus, 
   RefreshCw, 
   Settings, 
+  StickyNote, 
   Target, 
   UserPlus, 
   Users 
@@ -25,6 +24,7 @@ import TaskWidget from "@/components/dashboard/TaskWidget";
 import ContactsWidget from "@/components/dashboard/ContactsWidget";
 import CalendarWidget from "@/components/dashboard/CalendarWidget";
 import AnalyticsWidget from "@/components/dashboard/AnalyticsWidget";
+import NotesWidget from "@/components/notes/NotesWidget";
 
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
@@ -44,7 +44,10 @@ import {
   salesPipelineData
 } from "@/data/dashboardData";
 import { Task } from "@/types/task";
+import { Note } from "@/types/note";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 // Sample calendar events
 const sampleEvents = [
@@ -117,6 +120,25 @@ const Index = () => {
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const isMobile = useIsMobile();
+  
+  // Fetch notes for the dashboard widget
+  const { data: notes = [] } = useQuery<Note[]>({
+    queryKey: ['notes', 'recent'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) {
+        console.error("Error fetching notes:", error);
+        return [];
+      }
+      
+      return data as Note[];
+    },
+  });
 
   useEffect(() => {
     const refreshInterval = setInterval(() => {
@@ -215,9 +237,9 @@ const Index = () => {
               <CalendarPlus className="h-5 w-5" />
               <span>New Event</span>
             </Button>
-            <Button variant="outline" className="flex-col h-20 space-y-1" onClick={() => navigate("/email")}>
-              <Mail className="h-5 w-5" />
-              <span>New Email</span>
+            <Button variant="outline" className="flex-col h-20 space-y-1" onClick={() => navigate("/notes")}>
+              <StickyNote className="h-5 w-5" />
+              <span>New Note</span>
             </Button>
           </div>
           
@@ -290,11 +312,19 @@ const Index = () => {
               onEventClick={(id) => navigate(`/calendar?event=${id}`)}
             />
             
-            <ContactsWidget 
-              contacts={getRecentContacts(sampleContacts)}
-              onAddContact={() => navigate("/contacts?action=add")}
-              onContactClick={(id) => navigate(`/contacts?id=${id}`)}
-            />
+            <div className="flex flex-col gap-6">
+              <NotesWidget 
+                notes={notes}
+                onAddNote={() => navigate("/notes?action=add")}
+                onNoteClick={(id) => navigate(`/notes?id=${id}`)}
+              />
+              
+              <ContactsWidget 
+                contacts={getRecentContacts(sampleContacts)}
+                onAddContact={() => navigate("/contacts?action=add")}
+                onContactClick={(id) => navigate(`/contacts?id=${id}`)}
+              />
+            </div>
           </div>
           
           <div className="grid grid-cols-1 gap-6">

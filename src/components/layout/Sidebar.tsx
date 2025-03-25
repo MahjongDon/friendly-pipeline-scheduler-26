@@ -13,6 +13,7 @@ import {
   PieChart,
   Settings,
   ListTodo,
+  StickyNote,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -78,6 +79,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
               to="/calendar"
               icon={<Calendar className="h-5 w-5" />}
               text="Calendar"
+              collapsed={collapsed}
+            />
+            <NavItem
+              to="/notes"
+              icon={<StickyNote className="h-5 w-5" />}
+              text="Notes"
               collapsed={collapsed}
             />
             <NavItem

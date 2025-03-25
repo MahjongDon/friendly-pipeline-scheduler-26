@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,19 @@ import { useQuery } from "@tanstack/react-query";
 import { NotesService } from "@/services/notes-service";
 import { useDemoMode } from "@/hooks/use-demo-mode";
 import { DemoModeToggle } from "@/components/dashboard/DemoModeToggle";
+import { toast } from "sonner";
+import { Note } from "@/types/note";
+import { Task } from "@/types/task";
+import { Contact } from "@/types/contact";
+
+// Define Event type since it's used but not imported
+interface Event {
+  id: string;
+  title: string;
+  date: string;
+  start: string;
+  end: string;
+}
 
 const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -22,48 +36,100 @@ const Index = () => {
   const isMobile = useIsMobile();
   const { isDemoMode } = useDemoMode();
 
-  // Fetch tasks
+  // Fetch tasks with proper type definitions
   const { data: recentTasks = [] } = useQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
-      // Simulate fetching tasks from an API
+      // Return mock data with proper Task type
       return [
-        { id: "1", title: "Design CRM Dashboard", completed: true },
-        { id: "2", title: "Conduct User Research", completed: false },
-        { id: "3", title: "Implement Authentication", completed: false },
-      ];
+        { 
+          id: "1", 
+          title: "Design CRM Dashboard", 
+          completed: true, 
+          category: "Design",
+          priority: "high",
+          dueDate: "2024-03-14",
+          createdAt: "2024-03-10"
+        },
+        { 
+          id: "2", 
+          title: "Conduct User Research", 
+          completed: false, 
+          category: "Research",
+          priority: "medium",
+          dueDate: "2024-03-16",
+          createdAt: "2024-03-12"
+        },
+        { 
+          id: "3", 
+          title: "Implement Authentication", 
+          completed: false, 
+          category: "Development",
+          priority: "high",
+          dueDate: "2024-03-18",
+          createdAt: "2024-03-13"
+        },
+      ] as Task[];
     },
   });
 
-  // Fetch events
-  const { data: recentEvents = [] } = useQuery({
-    queryKey: ['events'],
-    queryFn: async () => {
-      // Simulate fetching events from an API
-      return [
-        { id: "1", title: "Team Meeting", date: "2024-03-15T10:00:00" },
-        { id: "2", title: "Client Presentation", date: "2024-03-16T14:00:00" },
-      ];
-    },
-  });
-
-  // Fetch contacts
+  // Fetch contacts with proper type definitions
   const { data: recentContacts = [] } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
-      // Simulate fetching contacts from an API
+      // Return mock data with proper Contact type
       return [
-        { id: "1", name: "John Doe", company: "Acme Corp" },
-        { id: "2", name: "Jane Smith", company: "Beta Inc" },
-      ];
+        { 
+          id: "1", 
+          name: "John Doe", 
+          company: "Acme Corp",
+          email: "john@acmecorp.com",
+          phone: "555-1234",
+          status: "active",
+          tags: ["client", "sales"]
+        },
+        { 
+          id: "2", 
+          name: "Jane Smith", 
+          company: "Beta Inc",
+          email: "jane@betainc.com",
+          phone: "555-5678",
+          status: "active",
+          tags: ["prospect"]
+        },
+      ] as Contact[];
+    },
+  });
+
+  // Fetch events with proper type definitions
+  const { data: recentEvents = [] } = useQuery({
+    queryKey: ['events'],
+    queryFn: async () => {
+      // Return mock data with proper Event type
+      return [
+        { 
+          id: "1", 
+          title: "Team Meeting", 
+          date: "2024-03-15T10:00:00",
+          start: "10:00",
+          end: "11:00"
+        },
+        { 
+          id: "2", 
+          title: "Client Presentation", 
+          date: "2024-03-16T14:00:00",
+          start: "14:00",
+          end: "15:30"
+        },
+      ] as Event[];
     },
   });
 
   // Fetch notes for the dashboard
   const { data: recentNotes = [] } = useQuery({
-    queryKey: ['dashboardNotes', isDemoMode],
+    queryKey: ['dashboardNotes'],
     queryFn: async () => {
-      const notes = await NotesService.getNotes(isDemoMode);
+      const notes = await NotesService.getNotes();
       // Only return the 3 most recent notes
       return notes.slice(0, 3);
     },

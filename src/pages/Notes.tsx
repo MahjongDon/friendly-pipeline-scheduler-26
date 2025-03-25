@@ -13,9 +13,6 @@ import NotesList from "@/components/notes/NotesList";
 import NoteForm from "@/components/notes/NoteForm";
 import { Note } from "@/types/note";
 import { NotesService } from "@/services/notes-service";
-import { useDemoMode } from "@/hooks/use-demo-mode";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 const Notes: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -24,21 +21,21 @@ const Notes: React.FC = () => {
   const [currentNote, setCurrentNote] = useState<Note | undefined>(undefined);
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
-  const { isDemoMode, toggleDemoMode } = useDemoMode();
 
   // Fetch notes
   const { data: notes = [], isLoading } = useQuery({
-    queryKey: ['notes', isDemoMode],
-    queryFn: () => NotesService.getNotes(isDemoMode),
+    queryKey: ['notes'],
+    queryFn: () => NotesService.getNotes(),
   });
 
   // Add note mutation
   const addNoteMutation = useMutation({
     mutationFn: (noteData: { title: string; content: string; tags?: string[] }) => 
-      NotesService.addNote(noteData, isDemoMode),
+      NotesService.addNote(noteData),
     onSuccess: () => {
       toast.success("Note added successfully");
-      queryClient.invalidateQueries({ queryKey: ['notes', isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardNotes'] });
     },
     onError: (error: any) => {
       toast.error(`Error adding note: ${error.message}`);
@@ -48,10 +45,11 @@ const Notes: React.FC = () => {
   // Update note mutation
   const updateNoteMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Note> }) => 
-      NotesService.updateNote(id, updates, isDemoMode),
+      NotesService.updateNote(id, updates),
     onSuccess: () => {
       toast.success("Note updated successfully");
-      queryClient.invalidateQueries({ queryKey: ['notes', isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardNotes'] });
     },
     onError: (error: any) => {
       toast.error(`Error updating note: ${error.message}`);
@@ -60,10 +58,11 @@ const Notes: React.FC = () => {
 
   // Delete note mutation
   const deleteNoteMutation = useMutation({
-    mutationFn: (id: string) => NotesService.deleteNote(id, isDemoMode),
+    mutationFn: (id: string) => NotesService.deleteNote(id),
     onSuccess: () => {
       toast.success("Note deleted successfully");
-      queryClient.invalidateQueries({ queryKey: ['notes', isDemoMode] });
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardNotes'] });
     },
     onError: (error: any) => {
       toast.error(`Error deleting note: ${error.message}`);
@@ -122,14 +121,6 @@ const Notes: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-3">
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id="demo-mode" 
-                  checked={isDemoMode} 
-                  onCheckedChange={toggleDemoMode} 
-                />
-                <Label htmlFor="demo-mode">Demo Mode</Label>
-              </div>
               <Button 
                 size="sm"
                 onClick={() => {

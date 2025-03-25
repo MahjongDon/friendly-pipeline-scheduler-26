@@ -1,13 +1,13 @@
 
 import React from "react";
-import { Note, StickyNote, Plus } from "lucide-react";
+import { StickyNote, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Note as NoteType } from "@/types/note";
+import { Note } from "@/types/note";
 import { format } from "date-fns";
 
 interface NotesWidgetProps {
-  notes: NoteType[];
+  notes: Note[];
   onAddNote?: () => void;
   onNoteClick?: (noteId: string) => void;
 }

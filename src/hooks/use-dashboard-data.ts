@@ -108,7 +108,7 @@ export function useDashboardData(isDemoMode: boolean) {
   const { data: recentNotes = [] } = useQuery<Note[]>({
     queryKey: ['dashboardNotes', isDemoMode],
     queryFn: async () => {
-      const notes = await NotesService.getNotes(isDemoMode);
+      const notes = await NotesService.getNotes();
       // Only return the 3 most recent notes
       return notes.slice(0, 3);
     },

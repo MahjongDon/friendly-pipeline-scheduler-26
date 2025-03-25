@@ -5,22 +5,10 @@ import { format, isToday, isTomorrow, addDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-
-// Updated to allow string dates for the dashboard
-interface Event {
-  id: string;
-  title: string;
-  start: Date | string;
-  end: Date | string;
-  date?: string;
-  allDay?: boolean;
-  description?: string;
-  location?: string;
-  organizer?: string;
-}
+import { DashboardEvent } from "@/hooks/use-dashboard-data";
 
 interface CalendarWidgetProps {
-  events: Event[];
+  events: DashboardEvent[];
   onAddEvent?: () => void;
   onEventClick?: (eventId: string) => void;
   days?: number;
@@ -35,30 +23,11 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({
   const today = new Date();
   const endDate = addDays(today, days - 1);
   
-  // Filter events that occur within the specified range
-  const filteredEvents = events.filter(event => {
-    // Handle different date formats
-    const eventDate = event.date 
-      ? new Date(event.date) 
-      : typeof event.start === 'string' 
-        ? new Date(event.start) 
-        : event.start;
-    
-    return eventDate >= today && eventDate <= endDate;
-  });
-  
   // Group events by day
-  const groupedEvents: { [key: string]: Event[] } = {};
+  const groupedEvents: { [key: string]: DashboardEvent[] } = {};
   
-  filteredEvents.forEach(event => {
-    // Handle different date formats
-    const eventDate = event.date 
-      ? new Date(event.date) 
-      : typeof event.start === 'string'
-        ? new Date(event.start)
-        : event.start;
-    
-    const dateKey = format(eventDate, "yyyy-MM-dd");
+  events.forEach(event => {
+    const dateKey = format(event.date, "yyyy-MM-dd");
     if (!groupedEvents[dateKey]) {
       groupedEvents[dateKey] = [];
     }
@@ -70,10 +39,6 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({
   for (let i = 0; i < days; i++) {
     dateRange.push(addDays(today, i));
   }
-
-  const getTimeString = (date: Date | string) => {
-    return format(typeof date === 'string' ? new Date(date) : date, "h:mm a");
-  };
 
   const getDayTitle = (date: Date) => {
     if (isToday(date)) return "Today";
@@ -126,10 +91,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({
                         <p className="font-medium">{event.title}</p>
                         <div className="flex items-center text-xs text-muted-foreground">
                           <Clock className="h-3 w-3 mr-1" />
-                          {event.allDay 
-                            ? "All day" 
-                            : `${getTimeString(event.start)} - ${getTimeString(event.end)}`
-                          }
+                          {`${event.start} - ${event.end}`}
                         </div>
                       </div>
                     ))}

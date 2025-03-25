@@ -23,7 +23,20 @@ const GmailOAuthHelp: React.FC = () => {
         <li>Create a new project</li>
         <li>Enable the Gmail API</li>
         <li>Configure the OAuth consent screen</li>
+        <li>
+          <strong>IMPORTANT:</strong> Select the following scopes:
+          <code className="bg-gray-100 px-1 rounded block mt-1 mb-1">
+            https://mail.google.com/
+          </code>
+          (This scope is required for sending emails via the Gmail API)
+        </li>
         <li>Create OAuth credentials (client ID and client secret)</li>
+        <li>
+          For "Authorized redirect URIs", add:
+          <code className="bg-gray-100 px-1 rounded block mt-1 mb-1">
+            https://developers.google.com/oauthplayground
+          </code>
+        </li>
         <li>
           Use the OAuth Playground to get a refresh token:
           <ul className="list-disc pl-5 mt-1 space-y-1">
@@ -45,7 +58,7 @@ const GmailOAuthHelp: React.FC = () => {
             </li>
             <li>Enter your Client ID and Client Secret</li>
             <li>
-              Select "Gmail API v1" and the scopes{" "}
+              Select "Gmail API v1" and the scope{" "}
               <code className="bg-gray-100 px-1 rounded">
                 https://mail.google.com/
               </code>
@@ -54,6 +67,9 @@ const GmailOAuthHelp: React.FC = () => {
             <li>Click "Exchange authorization code for tokens"</li>
             <li>Copy the refresh token for use in this form</li>
           </ul>
+        </li>
+        <li>
+          <strong>Browser/Localhost Restrictions:</strong> If testing locally, make sure to add <code>http://localhost</code> to "Authorized JavaScript origins" in your Google OAuth credentials.
         </li>
       </ol>
     </div>

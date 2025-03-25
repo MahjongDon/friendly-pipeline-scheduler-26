@@ -14,6 +14,7 @@ export const useProfile = (userId: string | undefined) => {
     job_title: "",
     phone: "",
   });
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const fetchProfile = async () => {
     if (!userId) return;
@@ -65,6 +66,7 @@ export const useProfile = (userId: string | undefined) => {
             job_title: newProfile.job_title || '',
             phone: newProfile.phone || '',
           });
+          setIsInitialized(true);
           return;
         }
         
@@ -80,6 +82,7 @@ export const useProfile = (userId: string | undefined) => {
           job_title: data.job_title || '',
           phone: data.phone || '',
         });
+        setIsInitialized(true);
       } 
     } catch (error) {
       console.error('Error in profile process:', error);
@@ -118,7 +121,17 @@ export const useProfile = (userId: string | undefined) => {
       if (error) throw error;
       
       toast.success('Profile updated successfully');
-      await fetchProfile();
+      
+      // Update local state to reflect the changes
+      setProfile({
+        ...(profile || {}),
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        company: formData.company,
+        job_title: formData.job_title,
+        phone: formData.phone,
+      } as UserProfile);
+      
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Failed to update profile');
@@ -128,10 +141,10 @@ export const useProfile = (userId: string | undefined) => {
   };
 
   useEffect(() => {
-    if (userId) {
+    if (userId && !isInitialized) {
       fetchProfile();
     }
-  }, [userId]);
+  }, [userId, isInitialized]);
 
   return {
     loading,

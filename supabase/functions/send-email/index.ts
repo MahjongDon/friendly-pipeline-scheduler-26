@@ -116,6 +116,8 @@ serve(async (req) => {
       let accessToken;
       
       try {
+        console.log("Making request to refresh token with client_id and refresh_token...");
+        
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: {
@@ -129,32 +131,39 @@ serve(async (req) => {
           })
         });
         
+        const responseStatus = tokenResponse.status;
+        const responseText = await tokenResponse.text();
+        console.log("Token refresh response:", responseStatus, responseText);
+        
         if (!tokenResponse.ok) {
-          const errorText = await tokenResponse.text();
-          console.error("Token refresh failed:", tokenResponse.status, errorText);
-          
           let responseJson;
           try {
-            responseJson = JSON.parse(errorText);
+            responseJson = JSON.parse(responseText);
           } catch (e) {
             responseJson = null;
           }
 
           // More detailed error messaging based on the response
-          if (tokenResponse.status === 401) {
+          if (responseStatus === 401) {
             throw new Error("Invalid OAuth2 credentials. Please check your OAuth configuration and regenerate refresh tokens.");
-          } else if (tokenResponse.status === 400) {
+          } else if (responseStatus === 400) {
             if (responseJson && responseJson.error === "invalid_grant") {
               throw new Error("Your OAuth refresh token has expired or been revoked. Please reconfigure Gmail OAuth.");
             } else {
-              throw new Error(`OAuth error: ${responseJson ? responseJson.error_description || responseJson.error : errorText}`);
+              throw new Error(`OAuth error: ${responseJson ? responseJson.error_description || responseJson.error : responseText}`);
             }
           } else {
-            throw new Error(`Failed to refresh access token: ${tokenResponse.status} - ${errorText}`);
+            throw new Error(`Failed to refresh access token: ${responseStatus} - ${responseText}`);
           }
         }
         
-        const tokenData = await tokenResponse.json();
+        let tokenData;
+        try {
+          tokenData = JSON.parse(responseText);
+        } catch (e) {
+          console.error("Failed to parse token response:", e);
+          throw new Error("Invalid token response format");
+        }
         
         if (tokenData.error) {
           console.error("Error refreshing token:", tokenData);
@@ -203,6 +212,8 @@ serve(async (req) => {
         `From: ${fromName ? `${fromName} <${from}>` : from}`,
         `To: ${to}`,
         `Subject: ${subject}`,
+        'MIME-Version: 1.0',
+        'Content-Type: text/html; charset=utf-8',
         '',
         body
       ].join('\r\n');
@@ -232,10 +243,9 @@ serve(async (req) => {
         
         const responseStatus = gmailResponse.status;
         let responseText = await gmailResponse.text();
+        console.log("Gmail API response:", responseStatus, responseText);
         
         if (!gmailResponse.ok) {
-          console.error("Gmail API error response:", responseStatus, responseText);
-          
           let responseJson;
           try {
             responseJson = JSON.parse(responseText);
@@ -324,7 +334,8 @@ serve(async (req) => {
     ) {
       userFriendlyMessage = 
         "Gmail OAuth authentication failed. Please reconfigure your Gmail OAuth setup in Email Settings. " +
-        "This usually happens when refresh tokens expire or permissions change.";
+        "This usually happens when refresh tokens expire or permissions change. " + 
+        "Make sure your OAuth scope includes https://mail.google.com/";
     }
     
     return new Response(

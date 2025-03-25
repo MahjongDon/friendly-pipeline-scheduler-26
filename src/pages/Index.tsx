@@ -7,9 +7,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useDemoMode } from "@/hooks/use-demo-mode";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import QuickActionsSection from "@/components/dashboard/QuickActionsSection";
 import MetricsSection from "@/components/dashboard/MetricsSection";
-import WidgetsSection from "@/components/dashboard/WidgetsSection";
-import BottomSection from "@/components/dashboard/BottomSection";
+import ChartsSection from "@/components/dashboard/ChartsSection";
+import { contactSummary, dealSummary, taskSummary } from "@/data/dashboardData";
 
 const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -41,19 +42,19 @@ const Index = () => {
         <main className="p-6">
           <DashboardHeader />
           
+          <QuickActionsSection />
+          
           <MetricsSection 
-            totalRevenue={metrics.totalRevenue}
-            newCustomers={metrics.newCustomers}
-            openTasks={metrics.openTasks}
+            activeLeads={contactSummary.activeContacts}
+            activeLeadsChange={12}
+            pipelineValue={dealSummary.totalValue}
+            pipelineValueChange={5}
+            taskCompletion={taskSummary.completionRate}
+            winRate={dealSummary.winRate}
+            winRateChange={3.2}
           />
           
-          <WidgetsSection 
-            tasks={recentTasks}
-            notes={recentNotes}
-            contacts={recentContacts}
-          />
-          
-          <BottomSection events={recentEvents} />
+          <ChartsSection />
         </main>
       </div>
     </div>

@@ -1,40 +1,58 @@
 
 import React from "react";
-import { CircleDollarSign, Users, ClipboardList } from "lucide-react";
-import DashboardMetricCard from "./DashboardMetricCard";
+import { Users, CircleDollarSign, CheckCircle, BarChart } from "lucide-react";
+import MetricCard from "./MetricCard";
 
 interface MetricsSectionProps {
-  totalRevenue: number;
-  newCustomers: number;
-  openTasks: number;
+  activeLeads: number;
+  activeLeadsChange: number;
+  pipelineValue: number;
+  pipelineValueChange: number;
+  taskCompletion: number;
+  winRate: number;
+  winRateChange: number;
 }
 
-const MetricsSection: React.FC<MetricsSectionProps> = ({ 
-  totalRevenue, 
-  newCustomers, 
-  openTasks 
+const MetricsSection: React.FC<MetricsSectionProps> = ({
+  activeLeads,
+  activeLeadsChange,
+  pipelineValue,
+  pipelineValueChange,
+  taskCompletion,
+  winRate,
+  winRateChange
 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-      <DashboardMetricCard
-        title="Total Revenue"
-        value={`$${totalRevenue}`}
-        description="+20% from last month"
-        icon={CircleDollarSign}
-      />
-      
-      <DashboardMetricCard
-        title="New Customers"
-        value={newCustomers}
-        description="+12% from last month"
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <MetricCard
+        title="Active Leads"
+        value={activeLeads}
         icon={Users}
+        subtitle="Total active contacts"
+        change={{ value: activeLeadsChange, isPositive: activeLeadsChange > 0 }}
       />
       
-      <DashboardMetricCard
-        title="Open Tasks"
-        value={openTasks}
-        description="3 tasks due this week"
-        icon={ClipboardList}
+      <MetricCard
+        title="Pipeline Value"
+        value={`$${pipelineValue.toLocaleString()}`}
+        icon={CircleDollarSign}
+        subtitle="Total deal value"
+        change={{ value: pipelineValueChange, isPositive: pipelineValueChange > 0 }}
+      />
+      
+      <MetricCard
+        title="Task Completion"
+        value={`${taskCompletion}%`}
+        icon={CheckCircle}
+        subtitle="Tasks completed"
+      />
+      
+      <MetricCard
+        title="Win Rate"
+        value={`${winRate}%`}
+        icon={BarChart}
+        subtitle="Deals won vs. lost"
+        change={{ value: winRateChange, isPositive: winRateChange > 0 }}
       />
     </div>
   );

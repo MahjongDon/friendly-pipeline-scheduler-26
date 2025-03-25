@@ -13,13 +13,10 @@ import FilterDialog from "@/components/contacts/FilterDialog";
 import ContactForm from "@/components/contacts/ContactForm";
 import ContactProfileDialog from "@/components/contacts/ContactProfileDialog";
 import { Contact } from "@/types/contact";
-import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const Contacts: React.FC = () => {
-  const { user } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const isMobile = useIsMobile();
@@ -36,8 +33,6 @@ const Contacts: React.FC = () => {
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
-      if (!user) return [];
-      
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
@@ -50,7 +45,6 @@ const Contacts: React.FC = () => {
       
       return data as Contact[];
     },
-    enabled: !!user,
   });
 
   // Add contact mutation
@@ -58,7 +52,7 @@ const Contacts: React.FC = () => {
     mutationFn: async (newContact: Omit<Contact, 'id'>) => {
       const { data, error } = await supabase
         .from('contacts')
-        .insert([{ ...newContact, user_id: user?.id }])
+        .insert([{ ...newContact, user_id: 'anonymous' }]) // Use 'anonymous' instead of user.id
         .select()
         .single();
       
@@ -122,11 +116,6 @@ const Contacts: React.FC = () => {
       toast.error(`Error deleting contact: ${error.message}`);
     }
   });
-
-  // If not authenticated, redirect to auth page
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
 
   const handleApplyFilters = useCallback(() => {
     toast.success("Filters applied successfully");

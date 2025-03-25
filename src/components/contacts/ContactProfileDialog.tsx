@@ -13,7 +13,6 @@ import { Contact } from "@/types/contact";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface ContactNote {
   id: string;
@@ -40,7 +39,6 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
   activeTab = "details",
   setActiveTab
 }) => {
-  const { user } = useAuth();
   const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
   const [newNote, setNewNote] = useState("");
   const [campaign, setCampaign] = useState("");
@@ -50,7 +48,7 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
   const { data: notes = [] } = useQuery({
     queryKey: ['contactNotes', contact?.id],
     queryFn: async () => {
-      if (!contact || !user) return [];
+      if (!contact) return [];
       
       const { data, error } = await supabase
         .from('contact_notes')
@@ -65,19 +63,19 @@ const ContactProfileDialog: React.FC<ContactProfileDialogProps> = ({
       
       return data as ContactNote[];
     },
-    enabled: !!contact && !!user && open,
+    enabled: !!contact && open,
   });
 
   // Add note mutation
   const addNoteMutation = useMutation({
     mutationFn: async (text: string) => {
-      if (!contact || !user) throw new Error("Missing contact or user");
+      if (!contact) throw new Error("Missing contact");
       
       const { data, error } = await supabase
         .from('contact_notes')
         .insert([{
           contact_id: contact.id,
-          user_id: user.id,
+          user_id: 'anonymous', // Since we no longer have user auth
           text
         }])
         .select()

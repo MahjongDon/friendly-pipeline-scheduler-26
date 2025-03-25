@@ -21,8 +21,8 @@ import { Note } from "@/types/note";
 import { Task } from "@/types/task";
 import { Contact } from "@/types/contact";
 
-// Define Event type since it's used but not imported
-interface Event {
+// Define our own Event type for the dashboard
+interface DashboardEvent {
   id: string;
   title: string;
   date: string;
@@ -48,8 +48,8 @@ const Index = () => {
           completed: true, 
           category: "Design",
           priority: "high",
-          dueDate: "2024-03-14",
-          createdAt: "2024-03-10"
+          dueDate: new Date("2024-03-14"),
+          createdAt: new Date("2024-03-10")
         },
         { 
           id: "2", 
@@ -57,8 +57,8 @@ const Index = () => {
           completed: false, 
           category: "Research",
           priority: "medium",
-          dueDate: "2024-03-16",
-          createdAt: "2024-03-12"
+          dueDate: new Date("2024-03-16"),
+          createdAt: new Date("2024-03-12")
         },
         { 
           id: "3", 
@@ -66,8 +66,8 @@ const Index = () => {
           completed: false, 
           category: "Development",
           priority: "high",
-          dueDate: "2024-03-18",
-          createdAt: "2024-03-13"
+          dueDate: new Date("2024-03-18"),
+          createdAt: new Date("2024-03-13")
         },
       ] as Task[];
     },
@@ -121,7 +121,7 @@ const Index = () => {
           start: "14:00",
           end: "15:30"
         },
-      ] as Event[];
+      ] as DashboardEvent[];
     },
   });
 

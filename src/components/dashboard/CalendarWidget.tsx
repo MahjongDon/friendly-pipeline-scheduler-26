@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+// Updated to allow string dates for the dashboard
 interface Event {
   id: string;
   title: string;
-  start: Date;
-  end: Date;
+  start: Date | string;
+  end: Date | string;
+  date?: string;
   allDay?: boolean;
   description?: string;
   location?: string;
@@ -35,7 +37,13 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({
   
   // Filter events that occur within the specified range
   const filteredEvents = events.filter(event => {
-    const eventDate = new Date(event.start);
+    // Handle different date formats
+    const eventDate = event.date 
+      ? new Date(event.date) 
+      : typeof event.start === 'string' 
+        ? new Date(event.start) 
+        : event.start;
+    
     return eventDate >= today && eventDate <= endDate;
   });
   
@@ -43,7 +51,14 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({
   const groupedEvents: { [key: string]: Event[] } = {};
   
   filteredEvents.forEach(event => {
-    const dateKey = format(new Date(event.start), "yyyy-MM-dd");
+    // Handle different date formats
+    const eventDate = event.date 
+      ? new Date(event.date) 
+      : typeof event.start === 'string'
+        ? new Date(event.start)
+        : event.start;
+    
+    const dateKey = format(eventDate, "yyyy-MM-dd");
     if (!groupedEvents[dateKey]) {
       groupedEvents[dateKey] = [];
     }
@@ -56,8 +71,8 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({
     dateRange.push(addDays(today, i));
   }
 
-  const getTimeString = (date: Date) => {
-    return format(date, "h:mm a");
+  const getTimeString = (date: Date | string) => {
+    return format(typeof date === 'string' ? new Date(date) : date, "h:mm a");
   };
 
   const getDayTitle = (date: Date) => {
@@ -113,7 +128,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({
                           <Clock className="h-3 w-3 mr-1" />
                           {event.allDay 
                             ? "All day" 
-                            : `${getTimeString(new Date(event.start))} - ${getTimeString(new Date(event.end))}`
+                            : `${getTimeString(event.start)} - ${getTimeString(event.end)}`
                           }
                         </div>
                       </div>

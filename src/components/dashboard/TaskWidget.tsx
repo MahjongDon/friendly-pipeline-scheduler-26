@@ -32,7 +32,7 @@ const TaskWidget: React.FC<TaskWidgetProps> = ({
   };
 
   const isOverdue = (date: Date) => {
-    return new Date(date).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0);
+    return date.setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0);
   };
 
   return (
@@ -84,7 +84,7 @@ const TaskWidget: React.FC<TaskWidgetProps> = ({
                       isOverdue(task.dueDate) ? "text-rose-500" : ""
                     )}>
                       {isOverdue(task.dueDate) ? "Overdue: " : ""}
-                      {format(new Date(task.dueDate), "MMM d, yyyy")}
+                      {format(task.dueDate, "MMM d, yyyy")}
                     </span>
                   </div>
                   

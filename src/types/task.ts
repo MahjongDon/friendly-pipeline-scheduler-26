@@ -5,9 +5,9 @@ export interface Task {
   description?: string;
   category: string;
   priority: "high" | "medium" | "low";
-  dueDate: Date;
+  dueDate: Date;  // Keep as Date for type safety
   completed: boolean;
-  createdAt: Date;
+  createdAt: Date; // Keep as Date for type safety
 }
 
 export const initialTasks: Task[] = [

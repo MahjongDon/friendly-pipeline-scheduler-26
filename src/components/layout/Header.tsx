@@ -40,7 +40,7 @@ const Header: React.FC = () => {
         
         <div className="ml-2 flex items-center">
           <div className="text-right">
-            <p className="text-sm font-medium">Portfolio Demo</p>
+            <p className="text-sm font-medium">Project Alpha 1.0</p>
             <p className="text-xs text-gray-500">CRM Showcase</p>
           </div>
         </div>

@@ -30,22 +30,18 @@ const SalesPipelineChart: React.FC<SalesPipelineChartProps> = ({ data }) => {
             <BarChart 
               data={data} 
               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              layout="vertical"
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
               <XAxis 
-                type="number"
+                dataKey="name"
                 axisLine={false} 
                 tickLine={false}
                 fontSize={12}
               />
               <YAxis 
-                dataKey="name"
-                type="category"
                 axisLine={false} 
                 tickLine={false} 
                 fontSize={12}
-                width={80}
               />
               <Tooltip 
                 content={({ active, payload }) => (
@@ -57,7 +53,7 @@ const SalesPipelineChart: React.FC<SalesPipelineChartProps> = ({ data }) => {
                 )}
               />
               <Legend wrapperStyle={{ bottom: -10 }} />
-              <Bar dataKey="value" fill="var(--color-value)" barSize={25} radius={[0, 4, 4, 0]} />
+              <Bar dataKey="value" fill="var(--color-value)" barSize={25} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>

@@ -13,7 +13,7 @@ export interface DashboardEvent {
   end: string;
 }
 
-export function useDashboardData(isDemoMode: boolean) {
+export function useDashboardData() {
   // Fetch tasks
   const { data: recentTasks = [] } = useQuery({
     queryKey: ['tasks'],
@@ -106,7 +106,7 @@ export function useDashboardData(isDemoMode: boolean) {
 
   // Fetch notes for the dashboard
   const { data: recentNotes = [] } = useQuery<Note[]>({
-    queryKey: ['dashboardNotes', isDemoMode],
+    queryKey: ['dashboardNotes'],
     queryFn: async () => {
       const notes = await NotesService.getNotes();
       // Only return the 3 most recent notes
@@ -114,7 +114,7 @@ export function useDashboardData(isDemoMode: boolean) {
     },
   });
 
-  // Calculate metrics
+  // Calculate metrics with updated values as requested
   const totalRevenue = 54000;
   const newCustomers = 24;
   const openTasks = recentTasks.filter(task => !task.completed).length;

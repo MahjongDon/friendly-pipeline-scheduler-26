@@ -4,7 +4,6 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useDemoMode } from "@/hooks/use-demo-mode";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import QuickActionsSection from "@/components/dashboard/QuickActionsSection";
@@ -15,7 +14,6 @@ import { contactSummary, dealSummary, taskSummary } from "@/data/dashboardData";
 const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const isMobile = useIsMobile();
-  const { isDemoMode } = useDemoMode();
   
   // Fetch all dashboard data using the custom hook
   const { 
@@ -24,7 +22,7 @@ const Index = () => {
     recentEvents, 
     recentNotes,
     metrics
-  } = useDashboardData(isDemoMode);
+  } = useDashboardData();
 
   return (
     <div className="flex min-h-screen bg-gray-50">

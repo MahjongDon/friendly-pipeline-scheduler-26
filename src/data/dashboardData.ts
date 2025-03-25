@@ -1,4 +1,3 @@
-
 import { ActivityItem, DashboardWidget, TaskSummary, EventSummary, ContactSummary, DealSummary } from "@/types/dashboard";
 import { Task } from "@/types/task";
 import { Contact } from "@/types/contact";
@@ -140,13 +139,13 @@ export const sampleActivities: ActivityItem[] = [
   }
 ];
 
-// Sample summary data
+// Sample summary data with updated values
 export const taskSummary: TaskSummary = {
   totalTasks: 28,
   completedTasks: 12,
   upcomingTasks: 8,
   overdueTasks: 3,
-  completionRate: 42.8 // percentage
+  completionRate: 88.8 // updated as requested
 };
 
 export const eventSummary: EventSummary = {
@@ -159,17 +158,17 @@ export const eventSummary: EventSummary = {
 export const contactSummary: ContactSummary = {
   totalContacts: 94,
   newContacts: 12,
-  activeContacts: 68,
+  activeContacts: 777, // updated as requested
   inactiveContacts: 14
 };
 
 export const dealSummary: DealSummary = {
-  totalValue: 126500,
+  totalValue: 125555, // updated as requested
   averageValue: 13200,
   totalDeals: 23,
   wonDeals: 8,
   lostDeals: 4,
-  winRate: 66.7 // percentage
+  winRate: 96.7 // updated as requested
 };
 
 // Helper function to get priority tasks
@@ -213,7 +212,7 @@ export const taskCompletionData = [
   { name: "Sun", completed: 0, pending: 2 },
 ];
 
-// Sales pipeline data for chart
+// Sales pipeline data for chart - changed to be compatible with column chart
 export const salesPipelineData = [
   { name: "Lead", value: 34 },
   { name: "Qualified", value: 24 },

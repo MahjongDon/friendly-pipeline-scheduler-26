@@ -1,21 +1,19 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  ListTodo, 
-  Calendar, 
-  PieChart, 
-  Users, 
-  Mail, 
-  Settings, 
-  HelpCircle, 
-  ChevronLeft,
-  ChevronRight
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Contact,
+  HelpCircle,
+  LayoutDashboard,
+  PieChart,
+  Settings,
+  ListTodo,
+} from "lucide-react";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -23,139 +21,125 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
-  const location = useLocation();
-  const isMobile = useIsMobile();
-  
-  const sidebarItems = [
-    { 
-      icon: LayoutDashboard, 
-      label: "Dashboard", 
-      href: "/",
-      active: location.pathname === "/"
-    },
-    { 
-      icon: PieChart, 
-      label: "Pipeline", 
-      href: "/pipeline",
-      active: location.pathname === "/pipeline"
-    },
-    { 
-      icon: ListTodo, 
-      label: "Tasks", 
-      href: "/tasks",
-      active: location.pathname === "/tasks"
-    },
-    { 
-      icon: Calendar, 
-      label: "Calendar", 
-      href: "/calendar",
-      active: location.pathname === "/calendar"
-    },
-    { 
-      icon: Users, 
-      label: "Contacts", 
-      href: "/contacts",
-      active: location.pathname === "/contacts"
-    },
-    { 
-      icon: Mail, 
-      label: "Email", 
-      href: "/email",
-      active: location.pathname === "/email"
-    },
-  ];
-  
-  const bottomItems = [
-    { 
-      icon: Settings, 
-      label: "Settings", 
-      href: "/settings",
-      active: location.pathname === "/settings"
-    },
-    { 
-      icon: HelpCircle, 
-      label: "Help & Support", 
-      href: "/help",
-      active: location.pathname === "/help"
-    },
-  ];
-
-  // If mobile, don't show the sidebar when collapsed
-  if (isMobile && collapsed) {
-    return null;
-  }
+  const toggleSidebar = () => {
+    setCollapsed(!collapsed);
+  };
 
   return (
     <aside
       className={cn(
-        "bg-sidebar fixed inset-y-0 left-0 z-20 flex h-full flex-col border-r border-border transition-all duration-300 ease-smooth",
+        "fixed left-0 top-0 z-30 h-full bg-white transition-all duration-300 ease-in-out shadow-md",
         collapsed ? "w-16" : "w-64"
       )}
     >
-      <div className="flex h-16 items-center justify-between px-4 py-5">
-        {!collapsed && (
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-white font-semibold text-sm">
-              CRM
-            </div>
-            <span className="font-semibold">CRM Suite</span>
-          </Link>
-        )}
-        {collapsed && (
-          <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-md bg-primary text-white font-semibold text-sm">
-            CRM
-          </div>
-        )}
-        {!isMobile && (
+      <div className="flex h-full flex-col">
+        <div className="flex h-16 items-center justify-between px-4">
+          {!collapsed && (
+            <h1 className="text-xl font-bold">CRM Portfolio</h1>
+          )}
           <Button
             variant="ghost"
             size="icon"
-            className="ml-auto h-8 w-8"
-            onClick={() => setCollapsed(!collapsed)}
+            className={cn(
+              "rounded-full",
+              collapsed && "ml-auto mr-auto"
+            )}
+            onClick={toggleSidebar}
           >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {collapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
           </Button>
-        )}
-      </div>
+        </div>
 
-      <nav className="flex-1 overflow-y-auto p-2">
-        <ul className="flex flex-col gap-1">
-          {sidebarItems.map((item) => (
-            <li key={item.label}>
-              <Link
-                to={item.href}
-                className={cn(
-                  "sidebar-item",
-                  item.active && "active"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+        <nav className="flex-1 px-2 py-4">
+          <ul className="space-y-1">
+            <NavItem
+              to="/"
+              icon={<LayoutDashboard className="h-5 w-5" />}
+              text="Dashboard"
+              collapsed={collapsed}
+            />
+            <NavItem
+              to="/pipeline"
+              icon={<PieChart className="h-5 w-5" />}
+              text="Pipeline"
+              collapsed={collapsed}
+            />
+            <NavItem
+              to="/tasks"
+              icon={<ListTodo className="h-5 w-5" />}
+              text="Tasks"
+              collapsed={collapsed}
+            />
+            <NavItem
+              to="/calendar"
+              icon={<Calendar className="h-5 w-5" />}
+              text="Calendar"
+              collapsed={collapsed}
+            />
+            <NavItem
+              to="/contacts"
+              icon={<Contact className="h-5 w-5" />}
+              text="Contacts"
+              collapsed={collapsed}
+            />
+            <NavItem
+              to="/settings"
+              icon={<Settings className="h-5 w-5" />}
+              text="Settings"
+              collapsed={collapsed}
+            />
+            <NavItem
+              to="/help"
+              icon={<HelpCircle className="h-5 w-5" />}
+              text="Help"
+              collapsed={collapsed}
+            />
+          </ul>
+        </nav>
 
-      <div className="p-2 mt-auto">
-        <ul className="flex flex-col gap-1">
-          {bottomItems.map((item) => (
-            <li key={item.label}>
-              <Link
-                to={item.href}
-                className={cn(
-                  "sidebar-item",
-                  item.active && "active"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="p-4">
+          <div className="rounded-lg bg-blue-50 p-4">
+            {!collapsed && (
+              <div className="text-sm">
+                <p className="font-medium text-blue-900">Portfolio App</p>
+                <p className="mt-1 text-blue-700">CRM Demo Version</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </aside>
+  );
+};
+
+interface NavItemProps {
+  to: string;
+  icon: React.ReactNode;
+  text: string;
+  collapsed: boolean;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ to, icon, text, collapsed }) => {
+  return (
+    <li>
+      <NavLink
+        to={to}
+        className={({ isActive }) =>
+          cn(
+            "flex items-center rounded-lg px-3 py-2 text-gray-900 hover:bg-gray-100",
+            isActive ? "bg-gray-100 font-medium" : "",
+            collapsed ? "justify-center" : ""
+          )
+        }
+      >
+        {icon}
+        {!collapsed && <span className="ml-3">{text}</span>}
+      </NavLink>
+    </li>
   );
 };
 
